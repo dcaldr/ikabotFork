@@ -33,6 +33,7 @@ These documents are for:
 
 ### Issues
 - **issue-01-webserver-ip-detection-linux.md**: Web server local IP detection fails on Linux/Raspberry Pi platforms
+- **issue-02-autopirate-bugs.md**: AutoPirate has critical hardcoded position bug + multiple other issues
 
 ### Features
 (None yet)
