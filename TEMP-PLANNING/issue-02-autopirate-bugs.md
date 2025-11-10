@@ -13,8 +13,8 @@
 The autoPirate module has several bugs and design issues:
 1. ~~**CRITICAL**: Hardcoded building position causes failures~~ **FALSE ALARM - NOT A BUG**
 2. **HIGH**: Missing null check causes crashes
-3. **MEDIUM**: Poor error handling masks problems
-4. **LOW**: Suboptimal city selection logic
+3. **MEDIUM**: Graceful recovery feature with poor implementation (needs logging)
+4. **FEATURE REQUEST**: Add capital city preference option
 
 ---
 
@@ -169,11 +169,20 @@ capturePoints = int(rta.group(1))
 
 ---
 
-## Bug #3: Bare Except Clause (MEDIUM)
+## Bug #3: Bare Except Clause - Feature with Poor Implementation (MEDIUM)
 
 ### Location
 **File**: `ikabot/function/autoPirate.py`
 **Lines**: 396-397 (in `getCurrentMissionWaitingTime` function)
+
+### UPDATE: This is a feature (graceful recovery) but with poor implementation
+
+**User clarification**: The bare except is intentional to:
+- Prevent accidental Ctrl+C from crashing the bot at this specific point
+- Recover gracefully if HTML parsing fails
+- Keep the bot running with a reasonable 10-minute default
+
+However, the **implementation has problems** that should be fixed while preserving the graceful recovery feature.
 
 ### Problem
 Bare `except:` catches all exceptions and silently returns hardcoded 10 minutes.
@@ -198,14 +207,16 @@ def getCurrentMissionWaitingTime(html):
 - **Frequency**: Only when regex fails
 - **Workaround**: Check logs (but there are no logs for this!)
 
-### Issues
-1. Catches `KeyboardInterrupt` - user can't interrupt
+### Issues with Current Implementation
+1. Catches `KeyboardInterrupt` - user can't interrupt (actually, this may be intentional per user)
 2. Catches `SystemExit` - program can't exit cleanly
 3. Catches unexpected errors - masks programming bugs
 4. No logging - impossible to diagnose
 5. Returns arbitrary value - 10 minutes may be wrong
 
-### Correct Pattern
+**Note**: User indicates that catching Ctrl+C here might be intentional to prevent accidental interruption. However, at minimum we should add logging.
+
+### Better Implementation (Preserves Graceful Recovery Feature)
 ```python
 def getCurrentMissionWaitingTime(html):
     try:
@@ -221,14 +232,17 @@ def getCurrentMissionWaitingTime(html):
 
 ---
 
-## Issue #4: Suboptimal City Selection (LOW)
+## Issue #4: City Selection - Feature Request (LOW/FEATURE)
 
 ### Location
 **File**: `ikabot/function/autoPirate.py`
 **Lines**: 188, 224, 257 - Always uses `piracyCities[0]["id"]`
 
-### Problem
+### Current Behavior
 Code always uses the FIRST city with a pirate fortress, with no prioritization logic.
+
+### Feature Request
+**User request**: Add option to prioritize capital city if it has a pirate fortress. Currently works in any city (which is correct), but users may want to prefer capital city operations.
 
 ### Code Analysis
 ```python
@@ -269,15 +283,15 @@ for id in ids:
 
 **activateShrine.py** - Returns first shrine found (similar behavior)
 
-### Potential Improvements
-1. **Prioritize capital** - Use capital's fortress first (if it exists)
+### Potential Improvements (Feature Requests)
+1. **Prioritize capital** - Use capital's fortress first (if it exists) **← USER REQUESTED FEATURE**
 2. **Highest level** - Use highest level fortress
 3. **User choice** - Ask user which city to use
 4. **Round robin** - Rotate between cities
 5. **Most points** - Use city with most capture points
 
 ### Is This a Bug?
-**NO** - This is working as designed, just not optimally. It's a design choice that could be improved but isn't incorrect.
+**NO** - This is working as designed. The current behavior (using first city found) is correct but could be enhanced with capital city preference as a feature.
 
 ---
 
@@ -375,16 +389,18 @@ This might be a workaround for an API quirk, or it might be unnecessary. Not cle
    - Log error and handle gracefully
    - Consider raising exception if critical
 
-### Priority 2: Improve Error Handling
-2. **Bug #3**: Replace bare except clause
-   - Use specific exception types
-   - Add proper logging
-   - Don't catch KeyboardInterrupt or SystemExit
+### Priority 2: Improve Feature Implementation
+2. **Bug #3**: Improve graceful recovery implementation (preserve feature, add logging)
+   - Keep graceful recovery behavior (intentional feature)
+   - Add logging so failures are visible
+   - Consider whether catching KeyboardInterrupt is truly desired
+   - Use more specific exceptions where possible
 
-### Priority 3: Optional Improvements
-3. **Issue #4**: Add city prioritization (optional)
-   - Consider adding capital preference
-   - Or let user choose city
+### Priority 3: Feature Enhancements
+3. **Issue #4**: Add capital city preference (USER REQUESTED)
+   - Allow users to prefer capital city fortress if available
+   - Falls back to other cities if capital doesn't have fortress
+   - Could be configurable option
 4. **Issue #5**: Add fortress status validation (optional)
 5. **Issue #6**: Remove redundant API call if not needed (test first)
 
