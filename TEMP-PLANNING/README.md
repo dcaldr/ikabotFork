@@ -33,10 +33,10 @@ These documents are for:
 
 ### Issues
 - **issue-01-webserver-ip-detection-linux.md**: Web server local IP detection fails on Linux/Raspberry Pi platforms
-- **issue-02-autopirate-bugs.md**: AutoPirate has critical hardcoded position bug + multiple other issues
+- **issue-02-autopirate-bugs.md**: AutoPirate has missing null check (HIGH) + graceful recovery needs logging (MEDIUM) + feature requests
 
 ### Features
-(None yet)
+- **feat-03-cli-table-auto-update.md**: Add auto-refresh capability to CLI process table (configurable, non-disruptive)
 
 ### Fixes
 (None yet)
