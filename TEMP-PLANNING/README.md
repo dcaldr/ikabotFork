@@ -39,6 +39,7 @@ These documents are for:
 - **feat-03-cli-table-auto-update.md**: Add auto-refresh capability to CLI process table (configurable, non-disruptive)
 - **feat-04-cli-menu-map-and-flows.md**: Complete CLI menu map, user flow analysis, and missing back button identification
 - **feat-05-telegram-port-feasibility.md**: Telegram bot interface port feasibility analysis and implementation plan (Difficulty: 6-7/10)
+- **feat-06-telegram-plugin-implementation-plan.md**: ⭐ Plugin-based Telegram interface using existing infrastructure (Difficulty: 3-4/10, NO new dependencies!)
 
 ### Fixes
 (None yet)
