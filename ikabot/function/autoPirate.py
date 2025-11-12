@@ -40,12 +40,23 @@ def autoPirate(session, event, stdin_fd, predetermined_input):
         )
         print("How many pirate missions should I do? (min = 1)")
         pirateCount = read(min=1, digit=True)
+
+        bestFortress = findBestPirateFortress(session, 1)
+        if bestFortress == []:
+            print(
+                "You do not have any city with a pirate fortress!"
+            )
+            enter()
+            event.set()
+            return
+        fortressCityName = bestFortress[0]["name"]
+
         print("Should I schedule pirate missions by the time of day? (y/N)")
         scheduleInput = read(values=["y", "Y", "n", "N", ""])
         if scheduleInput.lower() == "y":
             pirateSchedule = True
             print(
-                """Which pirate mission should I do at daytime? (Default mission)
+                """Which pirate mission should I do at daytime? (Default mission) (Using {})
         (1) 2m 30s
         (2) 7m 30s
         (3) 15m
@@ -55,7 +66,7 @@ def autoPirate(session, event, stdin_fd, predetermined_input):
         (7) 4h
         (8) 8h
         (9) 16h
-        """
+        """.format(fortressCityName)
             )
             pirateMissionDayChoice = read(min=1, max=9, digit=True)
             print(
@@ -77,7 +88,7 @@ def autoPirate(session, event, stdin_fd, predetermined_input):
                 dayEnd = int(dayEnd)
 
             print(
-                """Which pirate mission should I do at night time?
+                """Which pirate mission should I do at night time? (Using {})
             (1) 2m 30s
             (2) 7m 30s
             (3) 15m
@@ -87,7 +98,7 @@ def autoPirate(session, event, stdin_fd, predetermined_input):
             (7) 4h
             (8) 8h
             (9) 16h
-            """
+            """.format(fortressCityName)
             )
             pirateMissionNightChoice = read(min=1, max=9, digit=True)
 
@@ -111,7 +122,7 @@ def autoPirate(session, event, stdin_fd, predetermined_input):
         else:
             pirateSchedule = False
             print(
-                """Which pirate mission should I do?
+                """Which pirate mission should I do? (Using {})
         (1) 2m 30s
         (2) 7m 30s
         (3) 15m
@@ -121,7 +132,7 @@ def autoPirate(session, event, stdin_fd, predetermined_input):
         (7) 4h
         (8) 8h
         (9) 16h
-        """
+        """.format(fortressCityName)
             )
             pirateMissionChoice = read(min=1, max=9, digit=True)
         if pirateSchedule == True:
@@ -155,7 +166,7 @@ def autoPirate(session, event, stdin_fd, predetermined_input):
             return
 
         print(
-            "YAAAAAR! (Using pirate fortress in {})".format(piracyCities[0]["name"])
+            "YAAAAAR!"
         )  # get data for options such as auto-convert to crew strength, time intervals, number of piracy attempts... ^^
         enter()
     except KeyboardInterrupt:
