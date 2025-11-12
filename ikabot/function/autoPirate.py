@@ -145,7 +145,7 @@ def autoPirate(session, event, stdin_fd, predetermined_input):
             "Enter a maximum additional random waiting time between missions in seconds. (min = 0)"
         )
         maxRandomWaitingTime = read(min=0, digit=True)
-        piracyCities = getPiracyCities(session, pirateMissionChoice)
+        piracyCities = findBestPirateFortress(session, pirateMissionChoice)
         if piracyCities == []:
             print(
                 "You do not have any city with a pirate fortress capable of executing this mission!"
@@ -155,7 +155,7 @@ def autoPirate(session, event, stdin_fd, predetermined_input):
             return
 
         print(
-            "YAAAAAR!"
+            "YAAAAAR! (Using pirate fortress in {})".format(piracyCities[0]["name"])
         )  # get data for options such as auto-convert to crew strength, time intervals, number of piracy attempts... ^^
         enter()
     except KeyboardInterrupt:
@@ -177,7 +177,7 @@ def autoPirate(session, event, stdin_fd, predetermined_input):
                 else:
                     pirateMissionChoice = pirateMissionDayChoice
             pirateCount -= 1
-            piracyCities = getPiracyCities(
+            piracyCities = findBestPirateFortress(
                 session, pirateMissionChoice
             )  # this is done again inside the loop in case the user destroys / creates another pirate fortress while this module is running
             if piracyCities == []:
@@ -315,6 +315,48 @@ def resolveCaptcha(session, picture):
             if response["date"] > captcha_time:
                 return response["text"]
             time.sleep(5)
+
+
+def findBestPirateFortress(session, pirateMissionChoice):
+    """Finds the city with the highest level pirate fortress
+    Parameters
+    ----------
+    session : ikabot.web.session.Session
+    pirateMissionChoice : int
+
+    Returns
+    -------
+    piracyCities : list[dict]
+        List containing the city with highest level pirate fortress, or empty list if no suitable fortress found
+    """
+    cities_ids = getIdsOfCities(session)[0]
+    fortresses = []
+
+    for city_id in cities_ids:
+        html = session.get(city_url + city_id)
+        city = getCity(html)
+
+        for building in city["position"]:
+            if building["building"] == "pirateFortress":
+                fortresses.append({
+                    "city": city,
+                    "level": building["level"],
+                    "city_id": int(city_id),
+                    "is_capital": city["isCapital"]
+                })
+                break
+
+    if not fortresses:
+        return []
+
+    fortresses.sort(key=lambda f: (-f["level"], not f["is_capital"], f["city_id"]))
+
+    best = fortresses[0]
+
+    if best["level"] < piracyMissionToBuildingLevel[pirateMissionChoice]:
+        return []
+
+    return [best["city"]]
 
 
 def getPiracyCities(session, pirateMissionChoice):
