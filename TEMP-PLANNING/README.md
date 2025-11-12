@@ -34,7 +34,8 @@ These documents are for:
 ### Issues
 - **issue-01-webserver-ip-detection-linux.md**: Web server local IP detection fails on Linux/Raspberry Pi platforms
 - **issue-02-autopirate-bugs.md**: AutoPirate has missing null check (HIGH) + graceful recovery needs logging (MEDIUM) + feature requests
-- **issue-03-background-process-restart.md**: Background processes (webServer, autoPirate, constructionList) don't restart properly after session end - architectural limitation
+- **issue-03-background-process-restart.md**: Background processes don't restart properly - initial analysis (3 functions)
+- **issue-03-background-process-restart-COMPREHENSIVE.md**: ⭐ Complete analysis of ALL 20 background functions + webServer reconnection solution
 
 ### Features
 - **feat-03-cli-table-auto-update.md**: Add auto-refresh capability to CLI process table (configurable, non-disruptive)
