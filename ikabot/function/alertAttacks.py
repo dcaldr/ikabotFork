@@ -18,7 +18,7 @@ from ikabot.helpers.varios import daysHoursMinutes
 
 
 # DEBUG LOGGING: Comprehensive logging function to discover API structure for attack classification
-def log_attack_debug(militaryMovement, all_movements, postdata, session, current_city_id):
+def log_attack_debug(militaryMovement, all_movements, postdata, session, current_city_id, time_now, time_left):
     """
     Log EVERYTHING related to attack detection for debugging and API structure discovery.
 
@@ -35,6 +35,7 @@ def log_attack_debug(militaryMovement, all_movements, postdata, session, current
     - Session info (server, world, player) - context for the data
     - Current city context - which city we're viewing from
     - Statistics - counts of different movement types
+    - Precise timing data (server time, event time, time left in seconds)
 
     Creates/appends to ~/.ikabot/alert_debug.log with JSON data (one entry per line)
 
@@ -50,6 +51,10 @@ def log_attack_debug(militaryMovement, all_movements, postdata, session, current
         Current session with server/world/player info
     current_city_id : str
         ID of the city we're currently viewing from
+    time_now : int
+        Server's current timestamp (from API response)
+    time_left : int
+        Calculated seconds until attack arrival (eventTime - timeNow)
     """
     try:
         # DEBUG LOGGING: Create log directory if it doesn't exist
@@ -109,6 +114,14 @@ def log_attack_debug(militaryMovement, all_movements, postdata, session, current
                 "is_own": militaryMovement.get("isOwnArmyOrFleet"),
                 "event_time": militaryMovement.get("eventTime"),
                 "mission_type": militaryMovement.get("event", {}).get("missionType")
+            },
+
+            # Precise timing data (all in seconds, Unix timestamps)
+            "timing": {
+                "server_time_now": time_now,                    # Server's current time (Unix timestamp)
+                "attack_event_time": militaryMovement.get("eventTime"),  # Attack arrival time (Unix timestamp)
+                "time_left_seconds": time_left,                 # Exact seconds until arrival
+                "time_left_formatted": daysHoursMinutes(time_left)  # Human-readable format (e.g., "1H 23M")
             },
 
             # All available keys in the triggered movement (for discovery)
@@ -259,19 +272,6 @@ def do_it(session, minutes):
                 if event_id not in knownAttacks:
                     knownAttacks.append(event_id)
 
-                    # DEBUG LOGGING: Only log INCOMING attacks (not own outgoing pirate missions)
-                    # Filter: isHostile=true AND isOwnArmyOrFleet=false
-                    # This captures: triggered movement, all movements, full API response, session context, statistics
-                    # Log file location: ~/.ikabot/alert_debug.log (JSON Lines format)
-                    if not militaryMovement.get("isOwnArmyOrFleet", False):
-                        log_attack_debug(
-                            militaryMovement=militaryMovement,     # The hostile movement that triggered alert
-                            all_movements=militaryMovements,       # ALL movements (to compare patterns)
-                            postdata=postdata,                     # Full raw API response
-                            session=session,                       # Session with server/world/player info
-                            current_city_id=city_id                # Current city context
-                        )
-
                     # get information about the attack
                     missionText = militaryMovement["event"]["missionText"]
                     origin = militaryMovement["origin"]
@@ -279,6 +279,21 @@ def do_it(session, minutes):
                     amountTroops = militaryMovement["army"]["amount"]
                     amountFleets = militaryMovement["fleet"]["amount"]
                     timeLeft = int(militaryMovement["eventTime"]) - timeNow
+
+                    # DEBUG LOGGING: Only log INCOMING attacks (not own outgoing pirate missions)
+                    # Filter: isHostile=true AND isOwnArmyOrFleet=false
+                    # This captures: triggered movement, all movements, full API response, session context, statistics, precise timing
+                    # Log file location: ~/.ikabot/alert_debug.log (JSON Lines format)
+                    if not militaryMovement.get("isOwnArmyOrFleet", False):
+                        log_attack_debug(
+                            militaryMovement=militaryMovement,     # The hostile movement that triggered alert
+                            all_movements=militaryMovements,       # ALL movements (to compare patterns)
+                            postdata=postdata,                     # Full raw API response
+                            session=session,                       # Session with server/world/player info
+                            current_city_id=city_id,               # Current city context
+                            time_now=timeNow,                      # Server's current time (Unix timestamp)
+                            time_left=timeLeft                     # Seconds until attack arrival
+                        )
 
                     # send alert
                     msg = "-- ALERT --\n"
