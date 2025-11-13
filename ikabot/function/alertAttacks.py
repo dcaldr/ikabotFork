@@ -126,7 +126,7 @@ def log_attack_debug(militaryMovement, all_movements, postdata, session, current
         with open(log_file, "a", encoding="utf-8") as f:
             f.write(json.dumps(log_entry, ensure_ascii=False, default=str) + "\n")
 
-        # DEBUG LOGGING: Also log a summary to console for immediate feedback
+        # DEBUG LOGGING: Log summary to console for immediate feedback
         summary = (
             f"[DEBUG] Attack logged: '{log_entry['quick_ref']['mission_text']}' "
             f"from {log_entry['quick_ref']['origin_avatar']} "
@@ -135,22 +135,6 @@ def log_attack_debug(militaryMovement, all_movements, postdata, session, current
             f"-> {log_file}"
         )
         print(summary)
-
-        # DEBUG LOGGING: Also send summary to Telegram for immediate notification
-        try:
-            debug_summary = (
-                f"🐛 DEBUG: Attack data logged\n"
-                f"Type: {log_entry['quick_ref']['mission_text']}\n"
-                f"From: {log_entry['quick_ref']['origin_avatar']}\n"
-                f"Origin type: {log_entry['quick_ref']['origin_type']}\n"
-                f"Avatar ID: {log_entry['quick_ref']['origin_avatar_id']}\n"
-                f"Hostile: {log_entry['quick_ref']['is_hostile']}\n"
-                f"Own: {log_entry['quick_ref']['is_own']}\n"
-                f"Log: {log_file}"
-            )
-            sendToBotDebug(session, debug_summary, config.debugON_alertAttacks)
-        except:
-            pass  # Don't crash if Telegram debug fails
 
     except Exception as e:
         # DEBUG LOGGING: Don't crash alertAttacks if logging fails
@@ -308,6 +292,11 @@ def do_it(session, minutes):
                     msg += "arrival in: {}\n".format(daysHoursMinutes(timeLeft))
                     msg += "If you want to put the account in vacation mode send:\n"
                     msg += "{:d}:1".format(os.getpid())
+
+                    # DEBUG LOGGING: Add full movement object tree to alert message for analysis
+                    msg += "\n\n--- FULL ATTACK DATA (DEBUG) ---\n"
+                    msg += json.dumps(militaryMovement, indent=2, ensure_ascii=False, default=str)
+
                     sendToBot(session, msg)
 
         except Exception as e:
