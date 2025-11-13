@@ -93,51 +93,128 @@ import os
 from pathlib import Path
 ```
 
-#### 2. Add debug logging function
+#### 2. Add comprehensive debug logging function
 
 ```python
-def log_movement_debug(militaryMovement, session):
+def log_attack_debug(militaryMovement, all_movements, postdata, session, current_city_id):
     """
-    Log full military movement data for debugging attack classification
+    Log EVERYTHING related to attack detection for debugging
 
-    Creates/appends to ~/.ikabot_alert_debug.log with JSON data
+    Captures:
+    - The specific hostile movement that triggered alert
+    - ALL military movements (to compare hostile vs non-hostile)
+    - Full API response (postdata)
+    - Session info (server, world, player)
+    - Current city context
+
+    Creates/appends to ~/.ikabot/alert_debug.log with JSON data
     """
     try:
-        log_file = Path.home() / ".ikabot_alert_debug.log"
+        log_dir = Path.home() / ".ikabot"
+        log_dir.mkdir(exist_ok=True)
+        log_file = log_dir / "alert_debug.log"
 
-        # Prepare log entry
+        # Prepare comprehensive log entry
         log_entry = {
+            # Timestamp
             "timestamp": time.time(),
             "timestamp_readable": time.strftime("%Y-%m-%d %H:%M:%S"),
-            "server": session.servidor,
-            "world": session.mundo,
-            "player": session.username,
-            "movement": militaryMovement  # Full object
+
+            # Session context
+            "session": {
+                "server": session.servidor,
+                "world": session.mundo,
+                "player": session.username,
+                "current_city_id": current_city_id
+            },
+
+            # The hostile movement that triggered alert
+            "triggered_movement": militaryMovement,
+
+            # ALL military movements (for comparison)
+            "all_movements": all_movements,
+
+            # Count statistics
+            "stats": {
+                "total_movements": len(all_movements),
+                "hostile_movements": len([m for m in all_movements if m.get("isHostile")]),
+                "own_movements": len([m for m in all_movements if m.get("isOwnArmyOrFleet")]),
+                "incoming_movements": len([m for m in all_movements
+                                          if m.get("isHostile") and not m.get("isOwnArmyOrFleet")])
+            },
+
+            # Full API response (everything!)
+            "raw_api_response": postdata,
+
+            # Extracted data from triggered movement (for quick reference)
+            "quick_ref": {
+                "event_id": militaryMovement.get("event", {}).get("id"),
+                "mission_text": militaryMovement.get("event", {}).get("missionText"),
+                "origin_name": militaryMovement.get("origin", {}).get("name"),
+                "origin_avatar": militaryMovement.get("origin", {}).get("avatarName"),
+                "target_name": militaryMovement.get("target", {}).get("name"),
+                "army_amount": militaryMovement.get("army", {}).get("amount"),
+                "fleet_amount": militaryMovement.get("fleet", {}).get("amount"),
+                "is_hostile": militaryMovement.get("isHostile"),
+                "is_own": militaryMovement.get("isOwnArmyOrFleet")
+            }
         }
 
         # Append to log file (JSON lines format)
-        with open(log_file, "a") as f:
-            f.write(json.dumps(log_entry) + "\n")
+        with open(log_file, "a", encoding="utf-8") as f:
+            f.write(json.dumps(log_entry, ensure_ascii=False) + "\n")
+
+        # Also log a summary to console for immediate feedback
+        print(f"[DEBUG] Logged attack: {log_entry['quick_ref']['mission_text']} "
+              f"from {log_entry['quick_ref']['origin_avatar']} -> {log_file}")
 
     except Exception as e:
         # Don't crash alertAttacks if logging fails
-        print(f"Debug logging failed: {e}")
+        print(f"[DEBUG] Logging failed: {e}")
+        import traceback
+        traceback.print_exc()
 ```
 
 #### 3. Call it when alert triggers
 
-**Location**: Line 131, right after detecting new attack
+**Location**: Line 110-131, INSIDE the try block
 
 ```python
-if event_id not in knownAttacks:
-    knownAttacks.append(event_id)
+try:
+    # get the militaryMovements
+    html = session.get()
+    city_id = re.search(r"currentCityId:\s(\d+),", html).group(1)
+    url = "view=militaryAdvisor&oldView=city&oldBackgroundView=city&backgroundView=city&currentCityId={}&actionRequest={}&ajax=1".format(
+        city_id, actionRequest
+    )
+    movements_response = session.post(url)
+    postdata = json.loads(movements_response, strict=False)
+    militaryMovements = postdata[1][1][2]["viewScriptParams"][
+        "militaryAndFleetMovements"
+    ]
+    timeNow = int(postdata[0][1]["time"])
 
-    # DEBUG: Log full movement data
-    log_movement_debug(militaryMovement, session)
+    for militaryMovement in [
+        mov for mov in militaryMovements if mov["isHostile"]
+    ]:
+        event_id = militaryMovement["event"]["id"]
+        currentAttacks.append(event_id)
 
-    # get information about the attack
-    missionText = militaryMovement["event"]["missionText"]
-    # ... rest of existing code
+        if event_id not in knownAttacks:
+            knownAttacks.append(event_id)
+
+            # DEBUG: Log EVERYTHING related to this attack
+            log_attack_debug(
+                militaryMovement=militaryMovement,
+                all_movements=militaryMovements,  # ALL movements, not just hostile
+                postdata=postdata,                # Full API response
+                session=session,
+                current_city_id=city_id
+            )
+
+            # get information about the attack
+            missionText = militaryMovement["event"]["missionText"]
+            # ... rest of existing code
 ```
 
 ### Benefits

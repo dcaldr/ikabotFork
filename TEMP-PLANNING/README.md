@@ -46,7 +46,10 @@ These documents are for:
 - **feat-06-telegram-plugin-implementation-plan.md**: Plugin-based Telegram interface using existing infrastructure (Difficulty: 3-4/10, NO new dependencies!)
 - **feat-07-telegram-complete-separation-plan.md**: Complete separation architecture with ANSI formatting, zero core changes, ready-to-use prompt
 - **feat-08-telegram-zero-coupling.md**: ⭐⭐⭐ RECOMMENDED - Terminal emulator approach, TRUE zero coupling, 290 lines, 4 days, works with ANY future changes automatically!
-- **feat-09-alert-debug-logging.md**: ⭐ Debug logging to discover API structure for attack classification (needed for issue-04 fix)
+- **feat-09-alert-debug-logging.md**: ⭐ Comprehensive debug logging to discover API structure (logs EVERYTHING: all movements, full API response, stats)
+
+### Documentation
+- **alertAttacks-flow-explained.md**: ⭐ Complete explanation of how alertAttacks works (start to finish, 9-step breakdown, current problems)
 
 ### Fixes
 (None yet)
