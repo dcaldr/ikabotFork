@@ -4,6 +4,10 @@
 import threading
 import time
 import traceback
+# DEBUG LOGGING: Added imports for comprehensive attack data logging
+import json
+import os
+from pathlib import Path
 
 from ikabot.function.vacationMode import activateVacationMode
 from ikabot.helpers.botComm import *
@@ -11,6 +15,147 @@ from ikabot.helpers.gui import enter
 from ikabot.helpers.process import set_child_mode
 from ikabot.helpers.signals import setInfoSignal
 from ikabot.helpers.varios import daysHoursMinutes
+
+
+# DEBUG LOGGING: Comprehensive logging function to discover API structure for attack classification
+def log_attack_debug(militaryMovement, all_movements, postdata, session, current_city_id):
+    """
+    Log EVERYTHING related to attack detection for debugging and API structure discovery.
+
+    This function captures comprehensive data to help identify how to distinguish:
+    - Pirate attacks vs player attacks
+    - Different attack types (raid, pillage, occupy, etc.)
+    - Own movements vs incoming movements
+    - Any other attack classifications available in the API
+
+    Captures:
+    - The specific hostile movement that triggered the alert
+    - ALL military movements (to compare hostile vs non-hostile, own vs incoming)
+    - Full API response (postdata) - the complete raw data from Ikariam server
+    - Session info (server, world, player) - context for the data
+    - Current city context - which city we're viewing from
+    - Statistics - counts of different movement types
+
+    Creates/appends to ~/.ikabot/alert_debug.log with JSON data (one entry per line)
+
+    Parameters
+    ----------
+    militaryMovement : dict
+        The hostile movement object that triggered this alert
+    all_movements : list[dict]
+        Complete list of ALL military movements from API (hostile and non-hostile)
+    postdata : dict/list
+        Full raw API response from militaryAdvisor endpoint
+    session : ikabot.web.session.Session
+        Current session with server/world/player info
+    current_city_id : str
+        ID of the city we're currently viewing from
+    """
+    try:
+        # DEBUG LOGGING: Create log directory if it doesn't exist
+        log_dir = Path.home() / ".ikabot"
+        log_dir.mkdir(exist_ok=True)
+        log_file = log_dir / "alert_debug.log"
+
+        # DEBUG LOGGING: Prepare comprehensive log entry with EVERYTHING
+        log_entry = {
+            # Timestamp information
+            "timestamp": time.time(),
+            "timestamp_readable": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "timestamp_iso": time.strftime("%Y-%m-%dT%H:%M:%S"),
+
+            # Session context - who/where/when
+            "session": {
+                "server": session.servidor if hasattr(session, 'servidor') else None,
+                "world": session.mundo if hasattr(session, 'mundo') else None,
+                "player": session.username if hasattr(session, 'username') else None,
+                "current_city_id": current_city_id,
+                "pid": os.getpid()
+            },
+
+            # The hostile movement that triggered this alert
+            "triggered_movement": militaryMovement,
+
+            # ALL military movements (for comparison and pattern discovery)
+            "all_movements": all_movements,
+
+            # Count statistics to understand movement distribution
+            "stats": {
+                "total_movements": len(all_movements),
+                "hostile_movements": len([m for m in all_movements if m.get("isHostile")]),
+                "own_movements": len([m for m in all_movements if m.get("isOwnArmyOrFleet")]),
+                "incoming_movements": len([m for m in all_movements
+                                          if m.get("isHostile") and not m.get("isOwnArmyOrFleet")]),
+                "outgoing_own_hostile": len([m for m in all_movements
+                                            if m.get("isHostile") and m.get("isOwnArmyOrFleet")])
+            },
+
+            # Full API response - EVERYTHING the server sent us
+            "raw_api_response": postdata,
+
+            # Extracted data from triggered movement for quick reference
+            "quick_ref": {
+                "event_id": militaryMovement.get("event", {}).get("id"),
+                "mission_text": militaryMovement.get("event", {}).get("missionText"),
+                "origin_name": militaryMovement.get("origin", {}).get("name"),
+                "origin_avatar": militaryMovement.get("origin", {}).get("avatarName"),
+                "origin_avatar_id": militaryMovement.get("origin", {}).get("avatarId"),
+                "origin_type": militaryMovement.get("origin", {}).get("type"),
+                "target_name": militaryMovement.get("target", {}).get("name"),
+                "target_id": militaryMovement.get("target", {}).get("id"),
+                "army_amount": militaryMovement.get("army", {}).get("amount"),
+                "fleet_amount": militaryMovement.get("fleet", {}).get("amount"),
+                "is_hostile": militaryMovement.get("isHostile"),
+                "is_own": militaryMovement.get("isOwnArmyOrFleet"),
+                "event_time": militaryMovement.get("eventTime"),
+                "mission_type": militaryMovement.get("event", {}).get("missionType")
+            },
+
+            # All available keys in the triggered movement (for discovery)
+            "available_keys": {
+                "top_level": list(militaryMovement.keys()),
+                "event": list(militaryMovement.get("event", {}).keys()) if isinstance(militaryMovement.get("event"), dict) else [],
+                "origin": list(militaryMovement.get("origin", {}).keys()) if isinstance(militaryMovement.get("origin"), dict) else [],
+                "target": list(militaryMovement.get("target", {}).keys()) if isinstance(militaryMovement.get("target"), dict) else [],
+                "army": list(militaryMovement.get("army", {}).keys()) if isinstance(militaryMovement.get("army"), dict) else [],
+                "fleet": list(militaryMovement.get("fleet", {}).keys()) if isinstance(militaryMovement.get("fleet"), dict) else []
+            }
+        }
+
+        # DEBUG LOGGING: Append to log file in JSON Lines format (one JSON object per line)
+        with open(log_file, "a", encoding="utf-8") as f:
+            f.write(json.dumps(log_entry, ensure_ascii=False, default=str) + "\n")
+
+        # DEBUG LOGGING: Also log a summary to console for immediate feedback
+        summary = (
+            f"[DEBUG] Attack logged: '{log_entry['quick_ref']['mission_text']}' "
+            f"from {log_entry['quick_ref']['origin_avatar']} "
+            f"(hostile={log_entry['quick_ref']['is_hostile']}, "
+            f"own={log_entry['quick_ref']['is_own']}) "
+            f"-> {log_file}"
+        )
+        print(summary)
+
+        # DEBUG LOGGING: Also send summary to Telegram for immediate notification
+        try:
+            debug_summary = (
+                f"🐛 DEBUG: Attack data logged\n"
+                f"Type: {log_entry['quick_ref']['mission_text']}\n"
+                f"From: {log_entry['quick_ref']['origin_avatar']}\n"
+                f"Origin type: {log_entry['quick_ref']['origin_type']}\n"
+                f"Avatar ID: {log_entry['quick_ref']['origin_avatar_id']}\n"
+                f"Hostile: {log_entry['quick_ref']['is_hostile']}\n"
+                f"Own: {log_entry['quick_ref']['is_own']}\n"
+                f"Log: {log_file}"
+            )
+            sendToBotDebug(session, debug_summary, config.debugON_alertAttacks)
+        except:
+            pass  # Don't crash if Telegram debug fails
+
+    except Exception as e:
+        # DEBUG LOGGING: Don't crash alertAttacks if logging fails
+        print(f"[DEBUG] Alert logging failed: {e}")
+        traceback.print_exc()
 
 
 def alertAttacks(session, event, stdin_fd, predetermined_input):
@@ -129,6 +274,17 @@ def do_it(session, minutes):
                 # if we already alerted this, do nothing
                 if event_id not in knownAttacks:
                     knownAttacks.append(event_id)
+
+                    # DEBUG LOGGING: Log EVERYTHING about this attack for API structure discovery
+                    # This captures: triggered movement, all movements, full API response, session context, statistics
+                    # Log file location: ~/.ikabot/alert_debug.log (JSON Lines format)
+                    log_attack_debug(
+                        militaryMovement=militaryMovement,     # The hostile movement that triggered alert
+                        all_movements=militaryMovements,       # ALL movements (to compare patterns)
+                        postdata=postdata,                     # Full raw API response
+                        session=session,                       # Session with server/world/player info
+                        current_city_id=city_id                # Current city context
+                    )
 
                     # get information about the attack
                     missionText = militaryMovement["event"]["missionText"]
