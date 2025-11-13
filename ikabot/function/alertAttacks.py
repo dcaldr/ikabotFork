@@ -275,16 +275,18 @@ def do_it(session, minutes):
                 if event_id not in knownAttacks:
                     knownAttacks.append(event_id)
 
-                    # DEBUG LOGGING: Log EVERYTHING about this attack for API structure discovery
+                    # DEBUG LOGGING: Only log INCOMING attacks (not own outgoing pirate missions)
+                    # Filter: isHostile=true AND isOwnArmyOrFleet=false
                     # This captures: triggered movement, all movements, full API response, session context, statistics
                     # Log file location: ~/.ikabot/alert_debug.log (JSON Lines format)
-                    log_attack_debug(
-                        militaryMovement=militaryMovement,     # The hostile movement that triggered alert
-                        all_movements=militaryMovements,       # ALL movements (to compare patterns)
-                        postdata=postdata,                     # Full raw API response
-                        session=session,                       # Session with server/world/player info
-                        current_city_id=city_id                # Current city context
-                    )
+                    if not militaryMovement.get("isOwnArmyOrFleet", False):
+                        log_attack_debug(
+                            militaryMovement=militaryMovement,     # The hostile movement that triggered alert
+                            all_movements=militaryMovements,       # ALL movements (to compare patterns)
+                            postdata=postdata,                     # Full raw API response
+                            session=session,                       # Session with server/world/player info
+                            current_city_id=city_id                # Current city context
+                        )
 
                     # get information about the attack
                     missionText = militaryMovement["event"]["missionText"]
