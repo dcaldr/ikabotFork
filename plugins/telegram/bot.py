@@ -1,30 +1,47 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-"""Main Telegram bot coordinator"""
+"""Main Telegram bot coordinator - parallel CLI and Telegram interface"""
 
+import sys
 import threading
 from queue import Queue
 
 from ikabot.command_line import menu
 from ikabot.helpers.botComm import sendToBot
-from plugins.telegram.virtual_terminal import virtual_terminal
+from plugins.telegram.virtual_terminal import MultiplexedInputStream, TeeStdout
 from plugins.telegram.formatter import ANSIFormatter
 from plugins.telegram.poller import TelegramPoller
+from plugins.telegram.screen_buffer import ScreenBuffer
+from plugins.telegram.output_control import OutputControl
+
+# ===== COMMAND CONFIGURATION =====
+# Change command names here
+COMMANDS = {
+    "view": "view",  # Show current screen
+    "monitor": "monitor",  # Enable output to Telegram
+    "mute": "mute",  # Disable output to Telegram
+    "stop": "stop",  # Shutdown bot
+    "help": "help",  # Show help
+}
+# ==================================
 
 
 class TelegramBot:
-    """Main bot - runs ikabot menu via Telegram"""
+    """Main bot - runs parallel to CLI, both work simultaneously"""
 
-    def __init__(self, session):
+    def __init__(self, session, screen_buffer):
         """Initialize bot
 
         Args:
             session: ikabot Session object
+            screen_buffer: ScreenBuffer instance (shared with main)
         """
         self.session = session
         self.message_queue = Queue()
         self.formatter = ANSIFormatter()
+        self.screen_buffer = screen_buffer
+        self.output_control = OutputControl()
         self.running = False
 
         # Get bot credentials from session
@@ -36,11 +53,8 @@ class TelegramBot:
         # Create poller
         self.poller = TelegramPoller(bot_token, chat_id, self._handle_message)
 
-        # Menu thread
-        self.menu_thread = None
-
     def start(self):
-        """Start bot - begins polling and menu loop"""
+        """Start bot - begins polling"""
         if self.running:
             return
 
@@ -53,27 +67,49 @@ class TelegramBot:
         try:
             sendToBot(
                 self.session,
-                "🤖 Ikabot Telegram Interface Ready!\n\n"
-                "The menu will appear below. Type menu option numbers to interact.",
-                Token=True
+                "🤖 Telegram Bot Started (Quiet Mode)\n\n"
+                f"Use /{COMMANDS['view']} to see current screen\n"
+                f"Send any message to interact",
+                Token=True,
             )
         except Exception:
             pass
 
-        # Run menu loop in thread
-        self.menu_thread = threading.Thread(target=self._run_menu, daemon=True)
-        self.menu_thread.start()
+    def stop(self, kill_tasks=False):
+        """Stop bot
 
-    def stop(self):
-        """Stop bot"""
+        Args:
+            kill_tasks: If True, also kill all ikabot background tasks
+        """
         self.running = False
         self.poller.stop()
 
-        # Send goodbye message
-        try:
-            sendToBot(self.session, "👋 Telegram interface stopped.", Token=True)
-        except Exception:
-            pass
+        if kill_tasks:
+            # Kill all ikabot tasks
+            try:
+                import os
+                import signal
+                from ikabot.helpers.process import updateProcessList
+
+                process_list = updateProcessList(self.session)
+                for proc in process_list:
+                    try:
+                        os.kill(proc["pid"], signal.SIGTERM)
+                    except Exception:
+                        pass
+
+                sendToBot(
+                    self.session,
+                    f"🛑 Stopped bot and killed {len(process_list)} tasks",
+                    Token=True,
+                )
+            except Exception:
+                sendToBot(self.session, "🛑 Bot stopped", Token=True)
+        else:
+            try:
+                sendToBot(self.session, "🛑 Bot stopped", Token=True)
+            except Exception:
+                pass
 
     def _handle_message(self, update):
         """Handle incoming Telegram message
@@ -81,30 +117,97 @@ class TelegramBot:
         Args:
             update: Telegram update dict
         """
-        if "message" in update and "text" in update["message"]:
-            text = update["message"]["text"].strip()
+        if "message" not in update or "text" not in update["message"]:
+            return
 
-            # Skip empty messages and bot commands like /start
-            if not text or text.startswith("/"):
-                return
+        text = update["message"]["text"].strip()
 
-            # Add message to queue for menu to consume
-            self.message_queue.put(text)
+        if not text:
+            return
 
-    def _run_menu(self):
-        """Run menu() with hijacked stdin/stdout - runs in background thread"""
-        while self.running:
+        # Handle commands
+        if text.startswith("/"):
+            self._handle_command(text)
+            return
+
+        # First non-command message → auto-enable monitoring
+        if self.output_control.on_first_message():
             try:
-                # Run menu with virtual terminal
-                with virtual_terminal(self.session, self.formatter, self.message_queue):
-                    # This blocks and runs the interactive menu
-                    # It thinks it's in CLI but actually reads from Telegram
-                    menu(self.session, checkUpdate=False)
+                sendToBot(self.session, "📢 Monitoring started", Token=True)
             except Exception:
-                # If menu exits or crashes, restart it
-                if self.running:
-                    import time
-                    time.sleep(2)
-                    continue
-                else:
-                    break
+                pass
+
+        # Add message to stdin queue
+        self.message_queue.put(text)
+
+    def _handle_command(self, command):
+        """Handle bot commands
+
+        Args:
+            command: Command string starting with /
+        """
+        cmd = command.lower()
+
+        # /view - Show current screen
+        if cmd == f"/{COMMANDS['view']}":
+            chunks = self.screen_buffer.get_screen()
+            for chunk in chunks:
+                try:
+                    sendToBot(self.session, chunk, Token=True)
+                except Exception:
+                    pass
+
+        # /monitor - Enable output
+        elif cmd == f"/{COMMANDS['monitor']}":
+            self.output_control.set_monitor()
+            try:
+                sendToBot(self.session, "📢 Monitoring started", Token=True)
+            except Exception:
+                pass
+
+        # /mute - Disable output
+        elif cmd == f"/{COMMANDS['mute']}":
+            self.output_control.set_quiet()
+            try:
+                sendToBot(self.session, "🔇 Muted", Token=True)
+            except Exception:
+                pass
+
+        # /stop - Shutdown with options
+        elif cmd.startswith(f"/{COMMANDS['stop']}"):
+            parts = cmd.split()
+
+            if len(parts) == 1:
+                # Just /stop - ask for confirmation
+                try:
+                    sendToBot(
+                        self.session,
+                        "Stop telegram bot?\n\n"
+                        f"/{COMMANDS['stop']} bot - Stop bot only\n"
+                        f"/{COMMANDS['stop']} all - Stop bot + kill tasks",
+                        Token=True,
+                    )
+                except Exception:
+                    pass
+
+            elif len(parts) == 2:
+                if parts[1] == "bot":
+                    self.stop(kill_tasks=False)
+                elif parts[1] == "all":
+                    self.stop(kill_tasks=True)
+
+        # /help - Show help
+        elif cmd == f"/{COMMANDS['help']}":
+            help_text = (
+                "🤖 Telegram Bot Commands\n\n"
+                f"/{COMMANDS['view']} - Show current screen\n"
+                f"/{COMMANDS['monitor']} - Enable output\n"
+                f"/{COMMANDS['mute']} - Disable output\n"
+                f"/{COMMANDS['stop']} - Stop bot\n"
+                f"/{COMMANDS['help']} - Show this help\n\n"
+                "Send any number to interact with menu"
+            )
+            try:
+                sendToBot(self.session, help_text, Token=True)
+            except Exception:
+                pass
