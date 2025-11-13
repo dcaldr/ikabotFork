@@ -292,11 +292,6 @@ def do_it(session, minutes):
                     msg += "arrival in: {}\n".format(daysHoursMinutes(timeLeft))
                     msg += "If you want to put the account in vacation mode send:\n"
                     msg += "{:d}:1".format(os.getpid())
-
-                    # DEBUG LOGGING: Add full movement object tree to alert message for analysis
-                    msg += "\n\n--- FULL ATTACK DATA (DEBUG) ---\n"
-                    msg += json.dumps(militaryMovement, indent=2, ensure_ascii=False, default=str)
-
                     sendToBot(session, msg)
 
         except Exception as e:
