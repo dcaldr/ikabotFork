@@ -1,101 +1,88 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-"""Virtual terminal for Telegram bot - hijacks stdin/stdout"""
+"""Virtual terminal for Telegram bot - parallel I/O to terminal and Telegram"""
 
 import sys
-from contextlib import contextmanager
 from queue import Queue, Empty
-from ikabot.helpers.botComm import sendToBot
 
 
-class TelegramInputStream:
-    """Fake stdin that reads from Telegram message queue"""
+class MultiplexedInputStream:
+    """Reads from merged queue (terminal + Telegram)"""
 
     def __init__(self, message_queue):
         self.queue = message_queue
 
     def readline(self):
-        """Block until message available, return with newline"""
+        """Block until message available from any source"""
         try:
             message = self.queue.get(timeout=300)  # 5 min timeout
             return message + "\n"
         except Empty:
-            return "\n"  # Return empty line on timeout
+            return "\n"
 
     def fileno(self):
         """Return fake file descriptor"""
         return 99
 
 
-class TelegramOutputStream:
-    """Fake stdout that sends to Telegram"""
+class TeeStdout:
+    """Writes to terminal AND captures for Telegram
 
-    def __init__(self, session, formatter):
-        self.session = session
+    This allows CLI to work normally while Telegram can view the screen.
+    """
+
+    def __init__(self, screen_buffer, output_control, formatter, session):
+        """Initialize tee output
+
+        Args:
+            screen_buffer: ScreenBuffer instance
+            output_control: OutputControl instance
+            formatter: ANSIFormatter instance
+            session: ikabot Session instance
+        """
+        self.original_stdout = sys.__stdout__
+        self.screen_buffer = screen_buffer
+        self.output_control = output_control
         self.formatter = formatter
-        self.buffer = []
+        self.session = session
+        self.telegram_buffer = []
 
     def write(self, text):
-        """Buffer text, send complete messages"""
-        if not text or text == '\n':
+        """Write to both terminal and buffer"""
+        if not text:
             return
 
-        # Split on newlines and add to buffer
-        lines = text.split('\n')
-        for i, line in enumerate(lines):
-            if line:  # Skip empty lines
-                self.buffer.append(line)
-            # If not the last element or last element is empty (ends with \n), flush
-            if i < len(lines) - 1 or (i == len(lines) - 1 and not lines[-1]):
-                self.flush()
+        # 1. Write to real terminal (CLI works)
+        self.original_stdout.write(text)
+
+        # 2. Add to screen buffer (for /view)
+        self.screen_buffer.add(text)
+
+        # 3. Queue for Telegram if monitoring
+        if self.output_control.should_send_to_telegram():
+            self.telegram_buffer.append(text)
 
     def flush(self):
-        """Send buffered output to Telegram"""
-        if self.buffer:
-            # Join buffer and convert ANSI codes
-            message = "\n".join(self.buffer)
-            formatted = self.formatter.convert(message)
+        """Flush both terminal and Telegram buffers"""
+        # Flush terminal
+        self.original_stdout.flush()
+
+        # Send to Telegram if monitoring and has content
+        if self.telegram_buffer and self.output_control.should_send_to_telegram():
+            text = "".join(self.telegram_buffer)
+            formatted = self.formatter.convert(text)
 
             # Send to Telegram
             try:
+                from ikabot.helpers.botComm import sendToBot
+
                 sendToBot(self.session, formatted, Token=True)
             except Exception:
                 pass  # Silently ignore send errors
 
-            # Clear buffer
-            self.buffer = []
+            self.telegram_buffer = []
 
     def isatty(self):
-        """Return False to indicate non-interactive terminal"""
-        return False
-
-
-@contextmanager
-def virtual_terminal(session, formatter, message_queue):
-    """Context manager for stdin/stdout hijacking
-
-    Usage:
-        with virtual_terminal(session, formatter, queue):
-            # Code here will read from queue and write to Telegram
-            menu(session)
-    """
-    # Save originals
-    original_stdin = sys.stdin
-    original_stdout = sys.stdout
-
-    # Create Telegram versions
-    telegram_stdin = TelegramInputStream(message_queue)
-    telegram_stdout = TelegramOutputStream(session, formatter)
-
-    try:
-        # Hijack stdin/stdout
-        sys.stdin = telegram_stdin
-        sys.stdout = telegram_stdout
-
-        yield
-
-    finally:
-        # Restore originals
-        sys.stdout = original_stdout
-        sys.stdin = original_stdin
+        """Return original terminal's isatty status"""
+        return self.original_stdout.isatty()

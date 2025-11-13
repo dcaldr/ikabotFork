@@ -48,11 +48,8 @@ class TelegramPoller:
                 # Long polling with 30s timeout
                 response = get(
                     f"https://api.telegram.org/bot{self.bot_token}/getUpdates",
-                    params={
-                        "offset": self.last_update_id + 1,
-                        "timeout": 30
-                    },
-                    timeout=35  # Slightly longer than API timeout
+                    params={"offset": self.last_update_id + 1, "timeout": 30},
+                    timeout=35,  # Slightly longer than API timeout
                 ).json()
 
                 # Process updates
