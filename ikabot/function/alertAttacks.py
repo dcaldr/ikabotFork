@@ -317,18 +317,35 @@ def do_it(session, minutes):
                         time_left=timeLeft                     # Seconds until attack arrival
                     )
 
-                    # send alert
-                    msg = "-- ALERT --\n"
-                    msg += missionText + "\n"
-                    msg += "from the city {} of {}\n".format(
-                        origin["name"], origin["avatarName"]
+                    # Classify attack type: pirate vs normal player attack
+                    isPirate = (
+                        militaryMovement["event"].get("type") == "piracy" and
+                        militaryMovement["event"].get("missionIconClass") == "piracyRaid"
                     )
-                    msg += "a {}\n".format(target["name"])
-                    msg += "{} units\n".format(amountTroops)
-                    msg += "{} fleet\n".format(amountFleets)
-                    msg += "arrival in: {}\n".format(daysHoursMinutes(timeLeft))
-                    msg += "If you want to put the account in vacation mode send:\n"
-                    msg += "{:d}:1".format(os.getpid())
+
+                    # send alert
+                    if isPirate:
+                        msg = "-- PIRATE ATTACK --\n"
+                        msg += missionText + "\n"
+                        msg += "from the pirate fortress {} of {}\n".format(
+                            origin["name"], origin["avatarName"]
+                        )
+                        msg += "to {}\n".format(target["name"])
+                        msg += "arrival in: {}\n".format(daysHoursMinutes(timeLeft))
+                        msg += "(Pirate attacks cannot show unit/fleet numbers)\n"
+                    else:
+                        msg = "-- ALERT --\n"
+                        msg += missionText + "\n"
+                        msg += "from the city {} of {}\n".format(
+                            origin["name"], origin["avatarName"]
+                        )
+                        msg += "a {}\n".format(target["name"])
+                        msg += "{} units\n".format(amountTroops)
+                        msg += "{} fleet\n".format(amountFleets)
+                        msg += "arrival in: {}\n".format(daysHoursMinutes(timeLeft))
+                        msg += "If you want to put the account in vacation mode send:\n"
+                        msg += "{:d}:1".format(os.getpid())
+
                     sendToBot(session, msg)
 
         except Exception as e:
