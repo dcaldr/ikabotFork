@@ -106,14 +106,36 @@ def log_attack_debug(militaryMovement, all_movements, postdata, session, current
                 "origin_avatar": militaryMovement.get("origin", {}).get("avatarName"),
                 "origin_avatar_id": militaryMovement.get("origin", {}).get("avatarId"),
                 "origin_type": militaryMovement.get("origin", {}).get("type"),
+                "origin_city_id": militaryMovement.get("origin", {}).get("cityId"),
+                "origin_island_id": militaryMovement.get("origin", {}).get("islandId"),
                 "target_name": militaryMovement.get("target", {}).get("name"),
                 "target_id": militaryMovement.get("target", {}).get("id"),
+                "target_avatar_id": militaryMovement.get("target", {}).get("avatarId"),
+                "target_city_id": militaryMovement.get("target", {}).get("cityId"),
+                "target_island_id": militaryMovement.get("target", {}).get("islandId"),
                 "army_amount": militaryMovement.get("army", {}).get("amount"),
                 "fleet_amount": militaryMovement.get("fleet", {}).get("amount"),
                 "is_hostile": militaryMovement.get("isHostile"),
                 "is_own": militaryMovement.get("isOwnArmyOrFleet"),
+                "is_same_alliance": militaryMovement.get("isSameAlliance"),
+                "hide_units": militaryMovement.get("hideUnits"),  # CRITICAL: True for piracy
                 "event_time": militaryMovement.get("eventTime"),
+                "event_type": militaryMovement.get("event", {}).get("type"),  # CRITICAL: "piracy" for pirate attacks
+                "event_mission": militaryMovement.get("event", {}).get("mission"),  # Mission ID number
+                "event_mission_icon": militaryMovement.get("event", {}).get("missionIconClass"),  # CRITICAL: "piracyRaid" for pirates
+                "event_mission_state": militaryMovement.get("event", {}).get("missionState"),
                 "mission_type": militaryMovement.get("event", {}).get("missionType")
+            },
+
+            # Classification hints for pirate detection
+            "pirate_indicators": {
+                "is_piracy_type": militaryMovement.get("event", {}).get("type") == "piracy",
+                "is_piracy_icon": militaryMovement.get("event", {}).get("missionIconClass") == "piracyRaid",
+                "units_hidden": militaryMovement.get("hideUnits") == True,
+                "likely_pirate": (
+                    militaryMovement.get("event", {}).get("type") == "piracy" and
+                    militaryMovement.get("event", {}).get("missionIconClass") == "piracyRaid"
+                )
             },
 
             # Precise timing data (all in seconds, Unix timestamps)
