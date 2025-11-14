@@ -1,11 +1,35 @@
 # Feature: Auto-Train Defense Units on Pirate Attack Detection
 
-**Status**: Kick-off Analysis Complete
+**Status**: Requirements Clarified - Ready for Implementation
 **Priority**: HIGH
-**Difficulty**: 6/10
-**Type**: Emergency Response Feature
+**Difficulty**: 7/10 (increased due to dual-mode requirement)
+**Type**: Emergency Response Feature + Manual Command
 **Branch**: `claude/auto-train-defense-01B2FzQ1cMSE1xLwvcXrRM1b`
 **Based On**: `claude/bug-pirate-not-classified-01HWPoRQtpZJ9xn9Xm4TWzt7` (pirate detection)
+
+---
+
+## UPDATED REQUIREMENTS (from user feedback)
+
+### Key Clarifications:
+1. **Spending Limit**: Max resources per defense (similar to trainArmy), but **time constraint is primary rule**
+2. **Unit Selection**: Follow pattern from how pirates are trained in autoPirate.py
+3. **Safety Buffer**: Must be in **SECONDS** (not minutes)
+   - Account for "process start time penalty"
+   - User mentioned: "10 resources 10s = 1 pirate" (need to investigate exact meaning)
+4. **Multiple Attacks**: Spending limit is **per attack** (not global)
+5. **DUAL MODE OPERATION**:
+   - **Automatic mode**: Triggered by alertAttacks when pirate detected
+   - **Manual mode**: User can run as command from menu when they see an attack
+   - Manual mode calculates and gives order to train (time-sensitive)
+   - See: loadCustomModule or how to register modules in command_line.py
+
+### Implementation Approach:
+- Create standalone module that can be called in TWO ways:
+  1. From alertAttacks.py (automatic trigger)
+  2. From menu as "Emergency Defense Training" command (manual trigger)
+- Register in menu under "Military actions" (12) as option (3) → becomes menu item 1203
+- Module signature: `def emergencyDefense(session, event, stdin_fd, predetermined_input)`
 
 ---
 
@@ -23,6 +47,14 @@
 - Current training queue status
 - Resource availability
 - User-configured spending limits
+- Process start time penalty (accounts for API call delays)
+
+**Dual Operation Modes**:
+1. **Automatic**: Triggered when alertAttacks detects pirate attack
+2. **Manual**: User runs "Emergency Defense Training" from menu (option 12.3)
+   - Scans for incoming attacks
+   - Calculates optimal defense
+   - Queues training with user confirmation
 
 ---
 
@@ -72,33 +104,64 @@ From the pirate detection branch (`claude/bug-pirate-not-classified-01HWPoRQtpZJ
 
 ## Solution Architecture
 
-### High-Level Design
+### High-Level Design (Dual-Mode Architecture)
 
 ```
+MODE 1: AUTOMATIC (from alertAttacks)
 ┌─────────────────────────────────────────────────────────────────┐
 │  ikabot/function/alertAttacks.py (MODIFY)                       │
 │                                                                  │
 │  When pirate attack detected:                                   │
 │    1. Extract attack timing data (already done)                 │
-│    2. Call auto-train function (NEW)                            │
-│    3. Continue with alert notification                          │
+│    2. If auto-train enabled:                                    │
+│       - Import emergencyDefense module                          │
+│       - Call auto_train_for_attack(session, attack_data)        │
+│    3. Append result to alert notification                       │
+└─────────────────────────────────────────────────────────────────┘
+                            │
+                            ▼
+            ┌───────────────────────────────┐
+            │  MODE 2: MANUAL (from menu)   │
+            │                               │
+            │  Menu: Military Actions (12)  │
+            │  Option 3: Emergency Defense  │
+            │  → Item 1203                  │
+            └───────────────────────────────┘
+                            │
+                            ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  ikabot/function/emergencyDefense.py (NEW MODULE)               │
+│                                                                  │
+│  def emergencyDefense(session, event, stdin_fd, ...):           │
+│    - Banner & intro                                             │
+│    - Fetch current military movements (API call)                │
+│    - Scan for incoming attacks (hostile movements)              │
+│    - Display attacks to user with timing                        │
+│    - Ask user: "Train defense for which attack? (0 to cancel)"  │
+│    - Call shared helper: auto_train_for_attack()                │
+│    - Display result (what trained, when ready, etc.)            │
+│                                                                  │
+│  def auto_train_for_attack(session, attack_data):               │
+│    - Shared function used by BOTH modes                         │
+│    - Import from helpers.autoTrainDefense                       │
 └─────────────────────────────────────────────────────────────────┘
                             │
                             ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│  ikabot/helpers/autoTrainDefense.py (NEW FILE)                  │
+│  ikabot/helpers/autoTrainDefense.py (NEW HELPER)                │
 │                                                                  │
-│  def auto_train_defense(session, target_city_id,                │
-│                          attack_arrival_seconds, config):       │
-│    - Check if feature enabled                                   │
+│  def calculate_and_train_defense(session, target_city_id,       │
+│                                   attack_arrival_seconds,       │
+│                                   max_resources, buffer_sec):   │
 │    - Get target city data                                       │
 │    - Check for barracks                                         │
 │    - Get available units & training times                       │
 │    - Calculate current training queue time                      │
+│    - Account for safety buffer + process start penalty          │
 │    - Select units that fit time window                          │
-│    - Respect resource/spending limits                           │
-│    - Queue training                                             │
-│    - Return result (for alert message)                          │
+│    - Respect resource spending limit (primary: time constraint) │
+│    - Queue training via trainArmy.train()                       │
+│    - Return result dict (success, units, resources, timing)     │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -109,9 +172,10 @@ Stored in session data (like existing features):
 ```python
 session_data["auto_train_defense"] = {
     "enabled": True,
-    "max_resource_value": 5000,  # Max total resource value to spend
-    "safety_buffer_minutes": 10,  # Don't train if attack < 10 min away
-    "preferred_units": ["phalanx", "swordsman"],  # Priority order
+    "max_resource_value": 5000,  # Max total resource value to spend per attack
+    "safety_buffer_seconds": 120,  # Don't train if attack < 120 sec away (accounts for process delays)
+    "process_start_penalty": 30,  # Seconds to account for API calls and queue delays
+    "preferred_units": ["phalanx", "swordsman"],  # Priority order (optional)
 }
 ```
 
@@ -177,10 +241,10 @@ def auto_train_defense(session, target_city_id, attack_arrival_seconds, config):
     Returns: dict with result (success/failure, units trained, etc.)
     """
 
-def calculate_available_training_time(session, city, attack_arrival_seconds, buffer_minutes):
+def calculate_available_training_time(session, city, attack_arrival_seconds, buffer_seconds, process_penalty):
     """
     Calculate how much time available for training.
-    Accounts for: attack arrival, safety buffer, existing queue.
+    Accounts for: attack arrival, safety buffer (seconds), process start penalty, existing queue.
     Returns: available_seconds (int)
     """
 
@@ -259,8 +323,9 @@ def alertAttacks(session, event, stdin_fd, predetermined_input):
         print("Maximum resource value to spend per attack? (min: 100, default: 5000)")
         max_spend = read(min=100, digit=True, default=5000)
 
-        print("Safety buffer in minutes (don't train if attack closer than this)? (default: 10)")
-        buffer = read(min=0, digit=True, default=10)
+        print("Safety buffer in SECONDS (don't train if attack closer than this)? (default: 120)")
+        print("Note: Accounts for API delays and training queue startup time")
+        buffer_sec = read(min=0, digit=True, default=120)
 
         print("Preferred unit types (comma-separated, e.g., phalanx,swordsman):")
         print("Press enter for default (all units by strength)")
@@ -272,12 +337,13 @@ def alertAttacks(session, event, stdin_fd, predetermined_input):
         session_data["auto_train_defense"] = {
             "enabled": True,
             "max_resource_value": max_spend,
-            "safety_buffer_minutes": buffer,
+            "safety_buffer_seconds": buffer_sec,
+            "process_start_penalty": 30,  # Fixed 30 sec for API/queue delays
             "preferred_units": preferred
         }
         session.setSessionData(session_data)
 
-        print(f"\n✓ Auto-train enabled: max {max_spend} resources, {buffer} min buffer")
+        print(f"\n✓ Auto-train enabled: max {max_spend} resources, {buffer_sec} sec buffer")
     else:
         # Ensure disabled
         session_data = session.getSessionData()
@@ -409,18 +475,20 @@ for resource in materials:
 
 ---
 
-## Files Modified Summary
+## Files Modified Summary (UPDATED for Dual-Mode)
 
 | File | Type | Changes | Lines | Risk |
 |------|------|---------|-------|------|
-| `ikabot/helpers/autoTrainDefense.py` | **NEW** | Auto-train logic | ~250 | None (new file) |
-| `ikabot/function/alertAttacks.py` | MODIFY | Config + trigger call | +~50 | LOW (isolated additions) |
+| `ikabot/function/emergencyDefense.py` | **NEW** | Standalone module (manual + auto modes) | ~300 | None (new file) |
+| `ikabot/helpers/autoTrainDefense.py` | **NEW** | Core training logic (shared by both modes) | ~200 | None (new file) |
+| `ikabot/command_line.py` | MODIFY | Add menu item 1203 "Emergency Defense" | +2 | VERY LOW |
+| `ikabot/function/alertAttacks.py` | MODIFY | Config + auto-trigger call | +~50 | LOW (isolated additions) |
 
 **Total:**
-- 1 new file
-- 1 modified file
-- ~300 new lines total
-- **Fork merge risk**: VERY LOW (minimal changes to existing code)
+- 2 new files (module + helper)
+- 2 modified files (menu + alertAttacks)
+- ~550 new lines total
+- **Fork merge risk**: VERY LOW (minimal changes to existing code, mostly new files)
 
 ---
 
