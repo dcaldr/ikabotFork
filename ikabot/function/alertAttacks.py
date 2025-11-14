@@ -58,7 +58,7 @@ def log_attack_debug(militaryMovement, all_movements, postdata, session, current
     """
     try:
         # DEBUG LOGGING: Create log directory if it doesn't exist
-        log_dir = Path.home() / ".ikabot"
+        log_dir = Path.home() / "ikalog"
         log_dir.mkdir(exist_ok=True)
         log_file = log_dir / "alert_debug.log"
 
@@ -284,16 +284,16 @@ def do_it(session, minutes):
                     # Filter: isHostile=true AND isOwnArmyOrFleet=false
                     # This captures: triggered movement, all movements, full API response, session context, statistics, precise timing
                     # Log file location: ~/.ikabot/alert_debug.log (JSON Lines format)
-                    if not militaryMovement.get("isOwnArmyOrFleet", False):
-                        log_attack_debug(
-                            militaryMovement=militaryMovement,     # The hostile movement that triggered alert
-                            all_movements=militaryMovements,       # ALL movements (to compare patterns)
-                            postdata=postdata,                     # Full raw API response
-                            session=session,                       # Session with server/world/player info
-                            current_city_id=city_id,               # Current city context
-                            time_now=timeNow,                      # Server's current time (Unix timestamp)
-                            time_left=timeLeft                     # Seconds until attack arrival
-                        )
+                    
+                    log_attack_debug(
+                        militaryMovement=militaryMovement,     # The hostile movement that triggered alert
+                        all_movements=militaryMovements,       # ALL movements (to compare patterns)
+                        postdata=postdata,                     # Full raw API response
+                        session=session,                       # Session with server/world/player info
+                        current_city_id=city_id,               # Current city context
+                        time_now=timeNow,                      # Server's current time (Unix timestamp)
+                        time_left=timeLeft                     # Seconds until attack arrival
+                    )
 
                     # send alert
                     msg = "-- ALERT --\n"
