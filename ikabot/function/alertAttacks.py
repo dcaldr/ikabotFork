@@ -10,11 +10,13 @@ import os
 from pathlib import Path
 
 from ikabot.function.vacationMode import activateVacationMode
+from ikabot.function.emergencyDefense import auto_defend_on_detection
 from ikabot.helpers.botComm import *
 from ikabot.helpers.gui import enter
 from ikabot.helpers.process import set_child_mode
 from ikabot.helpers.signals import setInfoSignal
 from ikabot.helpers.varios import daysHoursMinutes
+from ikabot.helpers.pirateDefense import format_defense_result
 
 
 # DEBUG LOGGING: Comprehensive logging function to discover API structure for attack classification
@@ -203,6 +205,42 @@ def alertAttacks(session, event, stdin_fd, predetermined_input):
         )
         # min_units = read(msg=_('Attacks with less than how many units should be ignored? (default: 0): '), digit=True, default=0)
         print("I will check for attacks every {:d} minutes".format(minutes))
+
+        # Auto-pirate defense configuration
+        print("\n=== Auto-Pirate Defense Configuration ===")
+        print("Automatically convert capture points to crew when pirate attacks detected?\n")
+        auto_defend = read(msg="Enable auto-defense? (y/N): ", values=["y", "Y", "n", "N", ""])
+
+        if auto_defend.lower() == "y":
+            print("\nMaximum CAPTURE POINTS to spend per attack?")
+            print("(Leave empty for unlimited)")
+            max_points_input = read(msg="Max capture points (default: unlimited): ", min=0, digit=True, empty=True)
+            max_capture_points = int(max_points_input) if max_points_input != "" else None
+
+            print("\nSafety buffer in SECONDS (won't convert if attack too close)?")
+            print("Note: Conversion has ~156 second base time + 7 sec per crew point")
+            safety_buffer = read(msg="Safety buffer (default: 120): ", min=0, digit=True, default=120)
+
+            # Store configuration
+            session_data = session.getSessionData()
+            session_data["auto_pirate_defense"] = {
+                "enabled": True,
+                "max_capture_points": max_capture_points,
+                "safety_buffer_seconds": safety_buffer
+            }
+            session.setSessionData(session_data)
+
+            if max_capture_points:
+                print(f"\n✓ Auto-defense enabled: max {max_capture_points} capture points, {safety_buffer}s buffer")
+            else:
+                print(f"\n✓ Auto-defense enabled: unlimited points, {safety_buffer}s buffer")
+        else:
+            # Ensure disabled
+            session_data = session.getSessionData()
+            session_data["auto_pirate_defense"] = {"enabled": False}
+            session.setSessionData(session_data)
+            print("✓ Auto-defense disabled")
+
         enter()
     except KeyboardInterrupt:
         event.set()
@@ -333,6 +371,20 @@ def do_it(session, minutes):
                         msg += "to {}\n".format(target["name"])
                         msg += "arrival in: {}\n".format(daysHoursMinutes(timeLeft))
                         msg += "(Pirate attacks cannot show unit/fleet numbers)\n"
+
+                        # Auto-defend against pirate attack if enabled
+                        try:
+                            pirate_attack_data = {
+                                "target_city_id": target["cityId"],
+                                "time_left": timeLeft,
+                                "origin_name": origin["name"],
+                                "target_name": target["name"]
+                            }
+                            defense_result = auto_defend_on_detection(session, pirate_attack_data)
+                            msg += format_defense_result(defense_result)
+                        except Exception as e:
+                            msg += f"\n--- AUTO-DEFENSE ERROR ---\n{str(e)}\n"
+
                     else:
                         msg = "-- ALERT --\n"
                         msg += missionText + "\n"
