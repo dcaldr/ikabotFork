@@ -30,7 +30,7 @@ The plugin uses a **parallel I/O model** that:
 
 ## Files
 
-- `setup.py` - Menu bot configuration flow (~150 lines)
+- `setup.py` - Menu bot configuration with PIN verification (~170 lines)
 - `virtual_terminal.py` - Tee stdout, multiplexed stdin (~90 lines)
 - `bot.py` - Main coordinator with commands (~210 lines)
 - `poller.py` - Telegram polling (~80 lines)
@@ -38,7 +38,7 @@ The plugin uses a **parallel I/O model** that:
 - `screen_buffer.py` - Circular buffer with clear detection (~90 lines)
 - `output_control.py` - Quiet/monitor mode management (~70 lines)
 
-**Total: ~740 lines**
+**Total: ~760 lines**
 
 ## Usage
 
@@ -62,8 +62,11 @@ python telegram_bot.py
 The setup wizard will:
 1. Ask for a new bot token (from @BotFather)
 2. Verify the token
-3. Ask you to send /start to the new bot
-4. Save credentials to `session["shared"]["telegramMenu"]`
+3. Generate a random PIN (e.g., "1234")
+4. Ask you to send `/menubot 1234` to verify your identity
+5. Save credentials to `session["shared"]["telegramMenu"]`
+
+**Security**: Only the person with the PIN can register their chat_id.
 
 ### 3. Run Telegram Bot
 
