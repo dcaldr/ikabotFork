@@ -42,11 +42,11 @@
 
 ## Solution Overview
 
-**Add emergency pirate recruitment to centralized attack detection:**
+**Add emergency pirate recruitment to alertAttacksNG detection:**
 
 ```
 ┌─────────────────────────────────────────────────────┐
-│  ikabot/helpers/militaryMonitor.py                  │
+│  ikabot/function/alertAttacksNG.py                  │
 │                                                      │
 │  def check_for_attacks(...):                        │
 │    - Classify pirate vs player                      │
@@ -93,7 +93,7 @@ AUTO_BUY_PIRATES_BUFFER_MINUTES = 5  # Safety buffer (don't buy if attack < 5 mi
 
 ### Phase 2: Emergency Recruitment Function
 
-**File:** `ikabot/helpers/militaryMonitor.py` (modified from Feature #10)
+**File:** `ikabot/function/alertAttacksNG.py` (modified from Feature #10)
 
 **Add new function:**
 ```python
@@ -144,7 +144,7 @@ def select_emergency_mission(attack_arrival_seconds, buffer_minutes=5):
 
 ### Phase 3: Integration with Attack Detection
 
-**File:** `ikabot/helpers/militaryMonitor.py` (modified)
+**File:** `ikabot/function/alertAttacksNG.py` (modified)
 
 **Modify `check_for_attacks()` function:**
 ```python
@@ -213,15 +213,14 @@ def convertCapturePoints(session, piracyCities, convertPerMission):
 
 | File | Type | Changes | Risk |
 |------|------|---------|------|
-| `ikabot/helpers/militaryMonitor.py` | MODIFY | +~100 lines (emergency logic) | LOW |
+| `ikabot/function/alertAttacksNG.py` | MODIFY | +~100 lines (emergency logic) | LOW |
 | `ikabot/config.py` | MODIFY | +3 lines (config options) | VERY LOW |
-| `ikabot/function/alertAttacks.py` | MODIFY | +~15 lines (setup prompts) | VERY LOW |
 
 **Total:**
 - 0 new files (adds to Feature #10's file)
-- 3 modified files
-- ~120 new lines total
-- Merge conflict risk: **VERY LOW** (minimal changes, mostly to new file)
+- 2 modified files
+- ~105 new lines total
+- Merge conflict risk: **VERY LOW** (minimal changes, mostly to alertAttacksNG.py)
 
 ---
 
@@ -256,9 +255,9 @@ def convertCapturePoints(session, piracyCities, convertPerMission):
 
 ## Configuration Strategy
 
-### Setup Flow (in `alertAttacks.py`):
+### Setup Flow (in `alertAttacksNG.py`):
 ```python
-def alertAttacks(session, event, stdin_fd, predetermined_input):
+def alertAttacksNG(session, event, stdin_fd, predetermined_input):
     # ... existing polling interval setup ...
 
     print("Do you want to automatically recruit pirates when attacks are detected? (y/N)")
@@ -288,8 +287,8 @@ def alertAttacks(session, event, stdin_fd, predetermined_input):
 
 **Why session data?**
 - Persists across restarts
-- Available to militaryMonitor.py (shared state)
-- User can reconfigure by restarting alertAttacks
+- Available to alertAttacksNG.py (shared state)
+- User can reconfigure by restarting alertAttacksNG
 
 ---
 
@@ -427,10 +426,11 @@ def alertAttacks(session, event, stdin_fd, predetermined_input):
 ## Integration with Feature #10
 
 **Feature #10 provides foundation:**
-- Centralized `militaryMonitor.py` file
-- Pirate detection logic
+- `alertAttacksNG.py` standalone process with dual-mode detection
+- Pirate detection logic (timer + opportunistic)
 - Alert messaging system
-- Debug logging (if kept)
+- State management (file-based)
+- Debug logging (optional)
 
 **Feature #11 adds on top:**
 - Emergency response function
@@ -439,12 +439,12 @@ def alertAttacks(session, event, stdin_fd, predetermined_input):
 - Spending tracking
 
 **Clean separation:**
-- Feature #10: **Detection** (when/what)
-- Feature #11: **Response** (react/defend)
+- Feature #10: **Detection** (when/what, dual-mode)
+- Feature #11: **Response** (react/defend automatically)
 
 **Example call flow:**
 ```python
-# In militaryMonitor.py check_for_attacks():
+# In alertAttacksNG.py check_for_attacks():
 
 # Feature #10 code:
 isPirate = (event.type == "piracy" and event.missionIconClass == "piracyRaid")
@@ -476,7 +476,7 @@ if isPirate:
 **Rejected because:**
 - `autoPirate.py` is scheduled missions (different use case)
 - Would make file more complex (mixing concerns)
-- Feature #10's `militaryMonitor.py` is better integration point
+- Feature #10's `alertAttacksNG.py` is better integration point
 
 ### Alternative 3: Manual Telegram Response
 **Approach:** Send Telegram message with "buy pirates" option, user responds
