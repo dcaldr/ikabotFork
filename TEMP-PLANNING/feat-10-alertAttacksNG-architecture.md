@@ -604,7 +604,7 @@ knownAttacks.append(event_id)
 | Debug logging | ❌ No | ✅ Yes (optional) |
 | Modifications to other files | N/A | ✅ 0 lines! |
 | Fork-friendly | ⚠️ Medium (old code) | ✅ Perfect (separate file) |
-| Auto-buy pirates | ❌ No | ⏳ Future (Feature 11) |
+| Auto crew conversion defense | ❌ No | ✅ Ready (Feature 11) |
 
 ### Speed Improvements:
 
@@ -811,7 +811,7 @@ def attackPlayers(session):
 - [ ] Code comments
 - [ ] User documentation (if needed)
 - [ ] Update planning docs with results
-- [ ] Prepare for Feature 11 (auto-buy pirates)
+- [ ] Prepare for Feature 11 (crew conversion defense integration)
 
 ---
 
@@ -824,7 +824,7 @@ def attackPlayers(session):
 - ✅ Understanding of session.post() flow
 
 **Blocks:**
-- Feature #11 (auto-buy pirates) - builds on alertAttacksNG
+- Feature #11 (crew conversion defense) - integrates with alertAttacksNG (already working in alertAttacks)
 
 ---
 
@@ -895,15 +895,15 @@ def attackPlayers(session):
 - [ ] No duplicate alerts in 1 week parallel testing
 - [ ] User reports faster detection
 - [ ] No crashes or errors in logs
-- [ ] Ready for Feature 11 integration
+- [ ] Ready for Feature 11 integration (crew conversion defense)
 
 ---
 
 ## Future Enhancements (Out of Scope)
 
-1. **Feature #11: Auto-buy pirates** (next feature)
-   - Integrates with alertAttacksNG detection
-   - Emergency pirate recruitment on attack detection
+1. **Feature #11: Crew conversion defense integration** (next feature)
+   - Integrates existing crew conversion with alertAttacksNG detection
+   - Emergency crew conversion on attack detection (~20 lines to copy from alertAttacks)
 
 2. **Multi-account support**
    - Separate state files per account
@@ -953,4 +953,6 @@ def attackPlayers(session):
 
 **Benefit:** 4x faster average detection (timer) + infinite faster (opportunistic) = best of both worlds!
 
-This is the foundation for Feature #11 (auto-buy pirates) and all future attack-related enhancements.
+This is the foundation for Feature #11 (crew conversion defense integration) and all future attack-related enhancements.
+
+**Note**: Crew conversion defense is already implemented and working in alertAttacks.py. Feature #11 will simply copy the trigger code (~20 lines) to alertAttacksNG when it's ready.
