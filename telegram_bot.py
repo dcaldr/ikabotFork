@@ -20,13 +20,13 @@ import sys
 import signal
 
 from ikabot.web.session import Session
-from ikabot.helpers.botComm import telegramDataIsValid
 from ikabot.command_line import menu
 from plugins.telegram.bot import TelegramBot
 from plugins.telegram.screen_buffer import ScreenBuffer
 from plugins.telegram.virtual_terminal import MultiplexedInputStream, TeeStdout
 from plugins.telegram.formatter import ANSIFormatter
 from plugins.telegram.output_control import OutputControl
+from plugins.telegram.setup import telegramMenuBotDataIsValid, updateTelegramMenuBotData
 
 
 def setup_clear_detection(screen_buffer):
@@ -68,14 +68,25 @@ def main():
         print("Please run 'ikabot' first and log in")
         return 1
 
-    # Check if Telegram is configured
-    if not telegramDataIsValid(session):
-        print("❌ Error: Telegram not configured")
-        print("Please run 'ikabot' and configure Telegram in Options menu (21 -> 2)")
-        return 1
+    # Check if Telegram Menu Bot is configured
+    if not telegramMenuBotDataIsValid(session):
+        print("❌ Telegram Menu Bot not configured")
+        print()
+        print("This bot is SEPARATE from your notification bot.")
+        print("It handles menu interactions without interfering with alerts/captchas.")
+        print()
+
+        response = input("Configure now? (y/n): ").strip().lower()
+        if response != "y":
+            print("Setup cancelled. Run again when ready.")
+            return 1
+
+        if not updateTelegramMenuBotData(session):
+            print("Setup failed. Please try again.")
+            return 1
 
     print("✅ Session loaded")
-    print("✅ Telegram configured")
+    print("✅ Telegram Menu Bot configured")
     print()
 
     # Create shared components

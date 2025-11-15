@@ -44,11 +44,11 @@ class TelegramBot:
         self.output_control = OutputControl()
         self.running = False
 
-        # Get bot credentials from session
+        # Get menu bot credentials from session (separate from notification bot)
         session_data = session.getSessionData()
-        telegram_data = session_data["shared"]["telegram"]
-        bot_token = telegram_data["botToken"]
-        chat_id = telegram_data["chatId"]
+        telegram_menu_data = session_data["shared"]["telegramMenu"]
+        bot_token = telegram_menu_data["botToken"]
+        chat_id = telegram_menu_data["chatId"]
 
         # Create poller
         self.poller = TelegramPoller(bot_token, chat_id, self._handle_message)
