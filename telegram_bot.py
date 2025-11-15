@@ -55,7 +55,7 @@ def setup_clear_detection(screen_buffer):
 
 def main():
     """Main entry point"""
-    print("🤖 Ikabot Telegram Bot (Parallel Mode)")
+    print("👨‍🍳 ikaChef - Interactive Menu via Telegram")
     print("=" * 40)
 
     # Create session
@@ -68,12 +68,12 @@ def main():
         print("Please run 'ikabot' first and log in")
         return 1
 
-    # Check if Telegram Menu Bot is configured
+    # Check if ikaChef is configured
     if not telegramMenuBotDataIsValid(session):
-        print("❌ Telegram Menu Bot not configured")
+        print("❌ ikaChef not configured")
         print()
-        print("This bot is SEPARATE from your notification bot.")
-        print("It handles menu interactions without interfering with alerts/captchas.")
+        print("ikaChef is SEPARATE from your notification bot.")
+        print("It handles interactive menu control without interfering with alerts/captchas.")
         print()
 
         response = input("Configure now? (y/n): ").strip().lower()
@@ -86,7 +86,7 @@ def main():
             return 1
 
     print("✅ Session loaded")
-    print("✅ Telegram Menu Bot configured")
+    print("✅ ikaChef configured")
     print()
 
     # Create shared components
@@ -122,10 +122,10 @@ def main():
     signal.signal(signal.SIGTERM, signal_handler)
 
     # Start bot (begins polling)
-    print("🚀 Starting Telegram bot...")
+    print("🚀 Starting ikaChef...")
     bot.start()
 
-    print("✅ Bot is running in parallel mode!")
+    print("✅ ikaChef is running in parallel mode!")
     print("✅ Terminal works normally (CLI)")
     print("✅ Telegram can view/interact via commands")
     print()

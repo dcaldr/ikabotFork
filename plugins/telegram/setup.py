@@ -10,7 +10,7 @@ import requests
 
 
 def updateTelegramMenuBotData(session):
-    """Configure Telegram Menu Bot credentials (separate from alert bot)
+    """Configure ikaChef (Telegram interactive bot) credentials
 
     This creates a second bot specifically for menu interaction.
     The main notification bot (session["shared"]["telegram"]) continues
@@ -22,10 +22,10 @@ def updateTelegramMenuBotData(session):
     Returns:
         bool: True if setup successful, False otherwise
     """
-    print("\n🤖 Telegram Menu Bot Setup")
+    print("\n👨‍🍳 ikaChef Setup")
     print("=" * 40)
     print("This is a SEPARATE bot from your notification bot.")
-    print("It will handle menu interactions via Telegram.")
+    print("ikaChef handles interactive menu control via Telegram.")
     print()
 
     # Get bot token
@@ -64,7 +64,7 @@ def updateTelegramMenuBotData(session):
 
     print()
     print(f"3. Send this command to your bot on Telegram:")
-    print(f"   /menubot {pin}")
+    print(f"   /ikachef {pin}")
     print()
     print("Waiting for command... (Press Ctrl+C to cancel)")
 
@@ -75,7 +75,7 @@ def updateTelegramMenuBotData(session):
     try:
         while True:
             elapsed = int(time.time() - start_time)
-            print(f"Waiting for /menubot {pin}... ({elapsed}s)", end="\r")
+            print(f"Waiting for /ikachef {pin}... ({elapsed}s)", end="\r")
 
             url = f"https://api.telegram.org/bot{bot_token}/getUpdates"
             response = requests.get(url, timeout=10)
@@ -93,7 +93,7 @@ def updateTelegramMenuBotData(session):
                     continue
 
                 text = update["message"]["text"].strip()
-                if text == f"/menubot {pin}":
+                if text == f"/ikachef {pin}":
                     chat_id = update["message"]["from"]["id"]
                     break
 
@@ -106,7 +106,7 @@ def updateTelegramMenuBotData(session):
 
     except KeyboardInterrupt:
         print()
-        print(f"❌ Cancelled. Did not receive /menubot {pin}")
+        print(f"❌ Cancelled. Did not receive /ikachef {pin}")
         return False
     except Exception as e:
         print()
@@ -144,7 +144,7 @@ def updateTelegramMenuBotData(session):
 
             sendToBot(
                 session,
-                "✅ Menu bot configured successfully!\n\n"
+                "👨‍🍳 ikaChef configured successfully!\n\n"
                 "You can now run: python telegram_bot.py",
                 Token=True,
             )
@@ -157,7 +157,7 @@ def updateTelegramMenuBotData(session):
             pass  # Non-critical if confirmation fails
 
         print()
-        print("✅ Menu bot configured successfully!")
+        print("✅ ikaChef configured successfully!")
         print("✅ A confirmation message was sent to Telegram")
         print()
         print("You can now run: python telegram_bot.py")
@@ -170,7 +170,7 @@ def updateTelegramMenuBotData(session):
 
 
 def telegramMenuBotDataIsValid(session):
-    """Check if menu bot credentials are configured
+    """Check if ikaChef credentials are configured
 
     Args:
         session: ikabot Session object

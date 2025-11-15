@@ -1,13 +1,13 @@
-# Telegram Plugin for Ikabot - Parallel Mode
+# ikaChef 👨‍🍳 - Interactive Telegram Control for Ikabot
 
-This plugin enables viewing and interacting with ikabot via Telegram while the terminal continues to work normally.
+**ikaChef** enables viewing and interacting with ikabot via Telegram while the terminal continues to work normally.
 
 ## Two-Bot Architecture
 
 This plugin uses a **separate Telegram bot** from the main notification bot:
 
 - **Notification Bot** (`session["shared"]["telegram"]`): Handles alerts and captchas (existing feature)
-- **Menu Bot** (`session["shared"]["telegramMenu"]`): Handles menu interactions (this plugin)
+- **ikaChef** (`session["shared"]["telegramMenu"]`): Handles interactive menu control (this plugin)
 
 This separation prevents message consumption conflicts and requires **zero changes to core ikabot files**.
 
@@ -30,7 +30,7 @@ The plugin uses a **parallel I/O model** that:
 
 ## Files
 
-- `setup.py` - Menu bot configuration with PIN verification (~170 lines)
+- `setup.py` - ikaChef configuration with PIN verification (~170 lines)
 - `virtual_terminal.py` - Tee stdout, multiplexed stdin (~90 lines)
 - `bot.py` - Main coordinator with commands (~210 lines)
 - `poller.py` - Telegram polling (~80 lines)
@@ -51,7 +51,7 @@ python ikabot
 
 This bot handles alerts and captchas (existing ikabot feature).
 
-### 2. Configure Menu Bot (this plugin)
+### 2. Configure ikaChef (this plugin)
 
 ```bash
 python telegram_bot.py
@@ -63,18 +63,18 @@ The setup wizard will:
 1. Ask for a new bot token (from @BotFather)
 2. Verify the token
 3. Generate a random PIN (e.g., "1234")
-4. Ask you to send `/menubot 1234` to verify your identity
+4. Ask you to send `/ikachef 1234` to verify your identity
 5. Save credentials to `session["shared"]["telegramMenu"]`
 
 **Security**: Only the person with the PIN can register their chat_id.
 
-### 3. Run Telegram Bot
+### 3. Run ikaChef
 
 ```bash
 python telegram_bot.py
 ```
 
-Terminal continues to work normally. Telegram menu bot runs in parallel.
+Terminal continues to work normally. ikaChef runs in parallel.
 Both bots work independently without conflicts.
 
 ### 4. Telegram Commands
@@ -244,7 +244,7 @@ If we used the same bot, our poller would mark messages as read (offset-based),
 breaking these features. Two separate bots ensure:
 
 ✅ Notification bot continues to work unchanged
-✅ Menu bot handles interactions without conflicts
+✅ ikaChef handles interactions without conflicts
 ✅ Zero changes to core ikabot files
 ✅ Both features work simultaneously
 
@@ -254,7 +254,7 @@ breaking these features. Two separate bots ensure:
 - Screen buffer only captures since last `clear()` call
 - Binary/image output not supported (text only)
 - Telegram rate limits apply (30 msg/sec for broadcasts)
-- Requires two separate Telegram bots (notification + menu)
+- Requires two separate Telegram bots (notification + ikaChef)
 
 ## Zero-Coupling Design
 
