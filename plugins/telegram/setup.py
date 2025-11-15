@@ -4,6 +4,8 @@
 """Setup flow for Telegram Menu Bot - separate from main notification bot"""
 
 import re
+import time
+import random
 import requests
 
 
@@ -57,33 +59,58 @@ def updateTelegramMenuBotData(session):
         print(f"❌ Error verifying token: {e}")
         return False
 
-    # Get chat ID
+    # Generate random 4-digit PIN
+    pin = str(random.randint(0, 9999)).zfill(4)
+
     print()
-    print("3. Send /start to your bot on Telegram")
-    print("4. Press Enter when done")
-    input()
+    print(f"3. Send this command to your bot on Telegram:")
+    print(f"   /menubot {pin}")
+    print()
+    print("Waiting for command... (Press Ctrl+C to cancel)")
 
-    # Poll for messages
+    # Poll for messages with PIN
+    start_time = time.time()
+    chat_id = None
+
     try:
-        url = f"https://api.telegram.org/bot{bot_token}/getUpdates"
-        response = requests.get(url, timeout=10)
-        data = response.json()
+        while True:
+            elapsed = int(time.time() - start_time)
+            print(f"Waiting for /menubot {pin}... ({elapsed}s)", end="\r")
 
-        if not data.get("ok"):
-            print("❌ Error getting updates")
-            return False
+            url = f"https://api.telegram.org/bot{bot_token}/getUpdates"
+            response = requests.get(url, timeout=10)
+            data = response.json()
 
-        updates = data.get("result", [])
-        if not updates:
-            print("❌ No messages received. Please send /start to the bot")
-            return False
+            if not data.get("ok"):
+                time.sleep(2)
+                continue
 
-        # Get chat ID from latest message
-        chat_id = updates[-1]["message"]["chat"]["id"]
-        print(f"✅ Chat ID: {chat_id}")
+            # Check all messages for PIN
+            for update in data.get("result", []):
+                if "message" not in update:
+                    continue
+                if "text" not in update["message"]:
+                    continue
 
+                text = update["message"]["text"].strip()
+                if text == f"/menubot {pin}":
+                    chat_id = update["message"]["from"]["id"]
+                    break
+
+            if chat_id:
+                print()
+                print(f"✅ Verified! Chat ID: {chat_id}")
+                break
+
+            time.sleep(2)
+
+    except KeyboardInterrupt:
+        print()
+        print(f"❌ Cancelled. Did not receive /menubot {pin}")
+        return False
     except Exception as e:
-        print(f"❌ Error getting chat ID: {e}")
+        print()
+        print(f"❌ Error: {e}")
         return False
 
     # Save to session
@@ -101,8 +128,37 @@ def updateTelegramMenuBotData(session):
 
         session.setSessionData(session_data, shared=True)
 
+        # Send confirmation message
+        try:
+            from ikabot.helpers.botComm import sendToBot
+
+            # Temporarily set telegram data to menu bot for sending
+            temp_data = session.getSessionData()
+            original_telegram = temp_data["shared"].get("telegram", {}).copy()
+
+            temp_data["shared"]["telegram"] = {
+                "botToken": bot_token,
+                "chatId": str(chat_id),
+            }
+            session.setSessionData(temp_data, shared=True)
+
+            sendToBot(
+                session,
+                "✅ Menu bot configured successfully!\n\n"
+                "You can now run: python telegram_bot.py",
+                Token=True,
+            )
+
+            # Restore original telegram data
+            temp_data["shared"]["telegram"] = original_telegram
+            session.setSessionData(temp_data, shared=True)
+
+        except Exception:
+            pass  # Non-critical if confirmation fails
+
         print()
         print("✅ Menu bot configured successfully!")
+        print("✅ A confirmation message was sent to Telegram")
         print()
         print("You can now run: python telegram_bot.py")
 
