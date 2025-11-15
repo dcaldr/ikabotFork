@@ -2,16 +2,15 @@
 # -*- coding: utf-8 -*-
 
 """
-Emergency Pirate Defense - Manual Mode
+Emergency Pirate Defense - Manual Mode & Configuration
 
-User-callable command to manually trigger pirate defense when they see an incoming attack.
+User-callable command to:
+1. Manually trigger pirate defense when they see an incoming attack
+2. Configure auto-defense settings (used by alertAttacks)
 
 Flow:
-1. Fetch current military movements
-2. Show incoming pirate attacks to user
-3. User selects attack (NO confirmation - time critical!)
-4. Immediately convert crew for defense
-5. Show result
+- Manual defense: Scan for attacks → user selects → immediately convert
+- Configuration: Set up auto-defense preferences (max points, buffer, etc.)
 
 This module can be called from menu (option 12.3) or used by alertAttacks for automatic mode.
 """
@@ -29,12 +28,71 @@ from ikabot.helpers.varios import daysHoursMinutes
 from ikabot.helpers.pirateDefense import auto_defend_pirate_attack, format_defense_result
 
 
+def configure_auto_defense(session):
+    """
+    Configure auto-pirate defense settings.
+
+    This function is called during emergencyDefense setup to configure
+    automatic defense preferences. Can also be called standalone.
+
+    Parameters
+    ----------
+    session : ikabot.web.session.Session
+    """
+    banner()
+    print("=== Auto-Pirate Defense Configuration ===\n")
+    print("Configure automatic crew conversion when pirate attacks are detected.")
+    print("This works with the alertAttacks feature.\n")
+
+    auto_defend = read(msg="Enable auto-defense? (y/N): ", values=["y", "Y", "n", "N", ""])
+
+    if auto_defend.lower() == "y":
+        print("\nMaximum CAPTURE POINTS to spend per attack?")
+        print("(Leave empty for unlimited)")
+        max_points_input = read(msg="Max capture points (default: unlimited): ", min=0, digit=True, empty=True)
+        max_capture_points = int(max_points_input) if max_points_input != "" else None
+
+        print("\nSafety buffer in SECONDS (won't convert if attack too close)?")
+        print("Note: Conversion has ~156 second base time + 7 sec per crew point")
+        safety_buffer = read(msg="Safety buffer (default: 120): ", min=0, digit=True, default=120)
+
+        # Store configuration
+        session_data = session.getSessionData()
+        session_data["auto_pirate_defense"] = {
+            "enabled": True,
+            "max_capture_points": max_capture_points,
+            "safety_buffer_seconds": safety_buffer
+        }
+        session.setSessionData(session_data)
+
+        print("\n" + "="*50)
+        if max_capture_points:
+            print(f"✓ Auto-defense ENABLED")
+            print(f"  Max capture points: {max_capture_points}")
+            print(f"  Safety buffer: {safety_buffer} seconds")
+        else:
+            print(f"✓ Auto-defense ENABLED")
+            print(f"  Max capture points: UNLIMITED")
+            print(f"  Safety buffer: {safety_buffer} seconds")
+        print("="*50)
+    else:
+        # Ensure disabled
+        session_data = session.getSessionData()
+        session_data["auto_pirate_defense"] = {"enabled": False}
+        session.setSessionData(session_data)
+        print("\n✓ Auto-defense DISABLED")
+
+    print("\nPress Enter to continue...")
+    enter()
+
+
 def emergencyDefense(session, event, stdin_fd, predetermined_input):
     """
-    Manual emergency pirate defense command.
+    Manual emergency pirate defense command with configuration option.
 
-    Callable from menu. Scans for incoming pirate attacks and allows user
-    to immediately convert crew for defense.
+    Callable from menu. User can:
+    1. Configure auto-defense settings
+    2. Manually scan and defend against current pirate attacks
 
     Parameters
     ----------
@@ -49,6 +107,23 @@ def emergencyDefense(session, event, stdin_fd, predetermined_input):
     try:
         banner()
         print("=== EMERGENCY PIRATE DEFENSE ===\n")
+        print("(1) Defend against current pirate attacks (manual)")
+        print("(2) Configure auto-defense settings")
+        print("(0) Back\n")
+
+        choice = read(min=0, max=2, digit=True)
+
+        if choice == 0:
+            event.set()
+            return
+        elif choice == 2:
+            configure_auto_defense(session)
+            event.set()
+            return
+
+        # Continue with manual defense (choice == 1)
+        banner()
+        print("=== MANUAL PIRATE DEFENSE ===\n")
         print("Scanning for incoming pirate attacks...\n")
 
         # Fetch military movements
