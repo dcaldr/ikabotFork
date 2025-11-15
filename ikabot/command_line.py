@@ -43,6 +43,7 @@ from ikabot.function.vacationMode import vacationMode
 from ikabot.function.webServer import webServer
 from ikabot.function.loadCustomModule import loadCustomModule
 from ikabot.function.activateShrine import activateShrine
+from ikabot.function.emergencyDefense import emergencyDefense
 from ikabot.helpers.botComm import telegramDataIsValid, updateTelegramData
 from ikabot.helpers.gui import *
 from ikabot.helpers.pedirInfo import read
@@ -129,6 +130,7 @@ def menu(session, checkUpdate=True):
         11: activateMiracle,
         1201: trainArmy,
         1202: stationArmy,
+        1203: emergencyDefense,
         13: shipMovements,
         14: constructBuilding,
         15: update,
@@ -239,7 +241,8 @@ def menu(session, checkUpdate=True):
         print("(0) Back")
         print("(1) Train Army")
         print("(2) Send Troops/Ships")
-        selected = read(min=0, max=2, digit=True)
+        print("(3) Emergency Pirate Defense")
+        selected = read(min=0, max=3, digit=True)
         if selected == 0:
             menu(session)
             return
