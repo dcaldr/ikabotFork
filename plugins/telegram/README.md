@@ -2,6 +2,15 @@
 
 This plugin enables viewing and interacting with ikabot via Telegram while the terminal continues to work normally.
 
+## Two-Bot Architecture
+
+This plugin uses a **separate Telegram bot** from the main notification bot:
+
+- **Notification Bot** (`session["shared"]["telegram"]`): Handles alerts and captchas (existing feature)
+- **Menu Bot** (`session["shared"]["telegramMenu"]`): Handles menu interactions (this plugin)
+
+This separation prevents message consumption conflicts and requires **zero changes to core ikabot files**.
+
 ## Architecture
 
 The plugin uses a **parallel I/O model** that:
@@ -21,6 +30,7 @@ The plugin uses a **parallel I/O model** that:
 
 ## Files
 
+- `setup.py` - Menu bot configuration flow (~150 lines)
 - `virtual_terminal.py` - Tee stdout, multiplexed stdin (~90 lines)
 - `bot.py` - Main coordinator with commands (~210 lines)
 - `poller.py` - Telegram polling (~80 lines)
@@ -28,26 +38,43 @@ The plugin uses a **parallel I/O model** that:
 - `screen_buffer.py` - Circular buffer with clear detection (~90 lines)
 - `output_control.py` - Quiet/monitor mode management (~70 lines)
 
-**Total: ~590 lines**
+**Total: ~740 lines**
 
 ## Usage
 
-### 1. Configure Telegram (one-time setup)
+### 1. Configure Notification Bot (existing feature)
 
 ```bash
 python ikabot
 # Go to Options (21) -> Enter Telegram data (2)
 ```
 
-### 2. Run Telegram Bot
+This bot handles alerts and captchas (existing ikabot feature).
+
+### 2. Configure Menu Bot (this plugin)
+
+```bash
+python telegram_bot.py
+# When prompted, create a NEW bot with @BotFather
+# This is SEPARATE from your notification bot
+```
+
+The setup wizard will:
+1. Ask for a new bot token (from @BotFather)
+2. Verify the token
+3. Ask you to send /start to the new bot
+4. Save credentials to `session["shared"]["telegramMenu"]`
+
+### 3. Run Telegram Bot
 
 ```bash
 python telegram_bot.py
 ```
 
-Terminal continues to work normally. Telegram bot runs in parallel.
+Terminal continues to work normally. Telegram menu bot runs in parallel.
+Both bots work independently without conflicts.
 
-### 3. Telegram Commands
+### 4. Telegram Commands
 
 ```
 /view       - Show current screen (since last clear)
@@ -57,7 +84,7 @@ Terminal continues to work normally. Telegram bot runs in parallel.
 /help       - Show available commands
 ```
 
-### 4. Interact
+### 5. Interact
 
 Send any message (not starting with `/`) to interact with menu:
 
@@ -203,12 +230,28 @@ COMMANDS = {
 }
 ```
 
+## Why Two Separate Bots?
+
+The existing ikabot uses `getUserResponse()` which returns ALL unread messages (no offset).
+This is critical for features like:
+- **alertAttacks**: Waits for `PID:1` format to activate vacation mode
+- **autoPirate**: Waits for captcha responses
+
+If we used the same bot, our poller would mark messages as read (offset-based),
+breaking these features. Two separate bots ensure:
+
+✅ Notification bot continues to work unchanged
+✅ Menu bot handles interactions without conflicts
+✅ Zero changes to core ikabot files
+✅ Both features work simultaneously
+
 ## Limitations
 
 - Terminal input and Telegram input are merged (first one wins)
 - Screen buffer only captures since last `clear()` call
 - Binary/image output not supported (text only)
 - Telegram rate limits apply (30 msg/sec for broadcasts)
+- Requires two separate Telegram bots (notification + menu)
 
 ## Zero-Coupling Design
 
