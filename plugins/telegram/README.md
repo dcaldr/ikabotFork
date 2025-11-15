@@ -42,6 +42,32 @@ The plugin uses a **parallel I/O model** that:
 
 ## Usage
 
+### Quick Start: Auto-Detection Wrapper
+
+**Simplest way**: Use the `ikachef.py` wrapper that auto-detects your configuration:
+
+```bash
+# Auto-detect mode (recommended)
+python ikachef.py
+# OR
+./ikachef.sh
+
+# If ikaChef is configured → Runs Telegram mode automatically
+# If not configured → Runs normal CLI mode
+```
+
+**Manual control:**
+```bash
+python ikachef.py --chef    # Force ikaChef mode
+python ikachef.py --cli     # Force normal CLI mode
+```
+
+**Zero core changes** - wrapper lives outside `ikabot/` directory.
+
+---
+
+### Manual Setup & Launch
+
 ### 1. Configure Notification Bot (existing feature)
 
 ```bash
@@ -76,6 +102,22 @@ python telegram_bot.py
 
 Terminal continues to work normally. ikaChef runs in parallel.
 Both bots work independently without conflicts.
+
+---
+
+## Three Ways to Launch
+
+| Command | Mode | When to Use |
+|---------|------|-------------|
+| `python ikachef.py` | Auto-detect | **Recommended** - Automatically chooses mode |
+| `python telegram_bot.py` | Force ikaChef | Want Telegram mode specifically |
+| `python -m ikabot` | Force CLI | Want normal CLI mode specifically |
+
+**Auto-detection logic:**
+1. Check if logged in ✅
+2. Check if ikaChef configured ✅
+3. If both → Launch ikaChef mode
+4. Otherwise → Launch normal CLI mode
 
 ### 4. Telegram Commands
 
