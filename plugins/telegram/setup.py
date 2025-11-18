@@ -113,34 +113,32 @@ def setupIkaChef(session):
         print(f"❌ Error: {e}")
         return False
 
-    # Save to session
+    # Save to session (mimic external module pattern from botComm.py)
     try:
-        session_data = session.getSessionData()
-
-        if "shared" not in session_data:
-            session_data["shared"] = {}
-
-        if "ikaChef" not in session_data["shared"]:
-            session_data["shared"]["ikaChef"] = {}
-
-        session_data["shared"]["ikaChef"]["botToken"] = bot_token
-        session_data["shared"]["ikaChef"]["chatId"] = str(chat_id)
-
-        session.setSessionData(session_data, shared=True)
+        ikachef_data = {}
+        ikachef_data["ikaChef"] = {}
+        ikachef_data["ikaChef"]["botToken"] = bot_token
+        ikachef_data["ikaChef"]["chatId"] = str(chat_id)
+        session.setSessionData(ikachef_data, shared=True)
 
         # Send confirmation message
         try:
             from ikabot.helpers.botComm import sendToBot
 
-            # Temporarily set telegram data to menu bot for sending
-            temp_data = session.getSessionData()
-            original_telegram = temp_data["shared"].get("telegram", {}).copy()
+            # Check if user has notification bot configured
+            session_data = session.getSessionData()
+            has_notification_bot = (
+                "shared" in session_data and "telegram" in session_data["shared"]
+            )
+            if has_notification_bot:
+                original_telegram = session_data["shared"]["telegram"].copy()
 
-            temp_data["shared"]["telegram"] = {
-                "botToken": bot_token,
-                "chatId": str(chat_id),
-            }
-            session.setSessionData(temp_data, shared=True)
+            # Temporarily swap to ikaChef credentials for confirmation message
+            telegram_swap = {}
+            telegram_swap["telegram"] = {}
+            telegram_swap["telegram"]["botToken"] = bot_token
+            telegram_swap["telegram"]["chatId"] = str(chat_id)
+            session.setSessionData(telegram_swap, shared=True)
 
             sendToBot(
                 session,
@@ -149,9 +147,11 @@ def setupIkaChef(session):
                 Token=True,
             )
 
-            # Restore original telegram data
-            temp_data["shared"]["telegram"] = original_telegram
-            session.setSessionData(temp_data, shared=True)
+            # Restore original notification bot (only if it existed)
+            if has_notification_bot:
+                telegram_restore = {}
+                telegram_restore["telegram"] = original_telegram
+                session.setSessionData(telegram_restore, shared=True)
 
         except Exception:
             pass  # Non-critical if confirmation fails
