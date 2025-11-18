@@ -46,9 +46,9 @@ class TelegramBot:
 
         # Get menu bot credentials from session (separate from notification bot)
         session_data = session.getSessionData()
-        telegram_menu_data = session_data["shared"]["telegramMenu"]
-        bot_token = telegram_menu_data["botToken"]
-        chat_id = telegram_menu_data["chatId"]
+        ikachef_data = session_data["shared"]["ikaChef"]
+        bot_token = ikachef_data["botToken"]
+        chat_id = ikachef_data["chatId"]
 
         # Create poller
         self.poller = TelegramPoller(bot_token, chat_id, self._handle_message)
