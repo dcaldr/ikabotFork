@@ -59,13 +59,13 @@ def main():
     # Auto-detection mode
     try:
         from ikabot.web.session import Session
-        from plugins.telegram.setup import telegramMenuBotDataIsValid
+        from plugins.telegram.setup import isIkaChefConfigured
 
         # Create session to check configuration
         session = Session()
 
         # Check if both logged in AND ikaChef configured
-        if session.logged and telegramMenuBotDataIsValid(session):
+        if session.logged and isIkaChefConfigured(session):
             print("👨‍🍳 ikaChef detected - launching Telegram interactive mode")
             print("   (Use 'python ikachef.py --cli' to force CLI mode)")
             print()

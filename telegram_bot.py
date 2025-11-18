@@ -26,7 +26,7 @@ from plugins.telegram.screen_buffer import ScreenBuffer
 from plugins.telegram.virtual_terminal import MultiplexedInputStream, TeeStdout
 from plugins.telegram.formatter import ANSIFormatter
 from plugins.telegram.output_control import OutputControl
-from plugins.telegram.setup import telegramMenuBotDataIsValid, updateTelegramMenuBotData
+from plugins.telegram.setup import isIkaChefConfigured, setupIkaChef
 
 
 def setup_clear_detection(screen_buffer):
@@ -69,7 +69,7 @@ def main():
         return 1
 
     # Check if ikaChef is configured
-    if not telegramMenuBotDataIsValid(session):
+    if not isIkaChefConfigured(session):
         print("❌ ikaChef not configured")
         print()
         print("ikaChef is SEPARATE from your notification bot.")
@@ -81,7 +81,7 @@ def main():
             print("Setup cancelled. Run again when ready.")
             return 1
 
-        if not updateTelegramMenuBotData(session):
+        if not setupIkaChef(session):
             print("Setup failed. Please try again.")
             return 1
 

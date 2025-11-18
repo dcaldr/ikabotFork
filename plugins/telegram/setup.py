@@ -9,7 +9,7 @@ import random
 import requests
 
 
-def updateTelegramMenuBotData(session):
+def setupIkaChef(session):
     """Configure ikaChef (Telegram interactive bot) credentials
 
     This creates a second bot specifically for menu interaction.
@@ -169,7 +169,7 @@ def updateTelegramMenuBotData(session):
         return False
 
 
-def telegramMenuBotDataIsValid(session):
+def isIkaChefConfigured(session):
     """Check if ikaChef credentials are configured
 
     Args:
