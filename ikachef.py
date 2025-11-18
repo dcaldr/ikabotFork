@@ -40,8 +40,20 @@ def main():
 
     if force_chef:
         print("👨‍🍳 Launching ikaChef mode (forced)")
-        from telegram_bot import main as ikachef_main
-        ikachef_main()
+        try:
+            from telegram_bot import main as ikachef_main
+            ikachef_main()
+        except FileNotFoundError:
+            print()
+            print("❌ Session file not found (.ikabot)")
+            print()
+            print("You need to login to ikabot first:")
+            print("  1. Run: python -m ikabot")
+            print("  2. Login to your Ikariam account")
+            print("  3. Exit (select 0)")
+            print("  4. Then run: python ikachef.py --chef")
+            print()
+            return
         return
 
     # Auto-detection mode
@@ -71,6 +83,14 @@ def main():
 
             from ikabot.command_line import main as ikabot_main
             ikabot_main()
+
+    except FileNotFoundError:
+        # Session file doesn't exist yet - first time user
+        print("🎮 First time setup - launching normal ikabot")
+        print("   (Login first, then configure ikaChef)")
+        print()
+        from ikabot.command_line import main as ikabot_main
+        ikabot_main()
 
     except ImportError:
         # Plugin not available, fall back to normal mode
