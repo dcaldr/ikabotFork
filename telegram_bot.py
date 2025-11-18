@@ -20,7 +20,7 @@ import sys
 import signal
 
 from ikabot.web.session import Session
-from ikabot.command_line import menu
+from ikabot.command_line import menu, init
 from plugins.telegram.bot import TelegramBot
 from plugins.telegram.screen_buffer import ScreenBuffer
 from plugins.telegram.virtual_terminal import MultiplexedInputStream, TeeStdout
@@ -57,6 +57,9 @@ def main():
     """Main entry point"""
     print("👨‍🍳 ikaChef - Interactive Menu via Telegram")
     print("=" * 40)
+
+    # Initialize ikabot (changes to HOME directory where .ikabot lives)
+    init()
 
     # Create session
     print("Loading session...")
