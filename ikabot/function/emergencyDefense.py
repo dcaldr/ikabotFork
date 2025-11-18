@@ -54,7 +54,7 @@ def configure_auto_defense(session):
 
         print("\nSafety buffer in SECONDS (won't convert if attack too close)?")
         print("Note: Conversion has ~156 second base time + 7 sec per crew point")
-        safety_buffer = read(msg="Safety buffer (default: 120): ", min=0, digit=True, default=120)
+        safety_buffer = read(msg="Safety buffer (default: 10): ", min=0, digit=True, default=10)
 
         # Store configuration
         session_data = session.getSessionData()
@@ -177,7 +177,7 @@ def emergencyDefense(session, event, stdin_fd, predetermined_input):
         session_data = session.getSessionData()
         defense_config = session_data.get("auto_pirate_defense", {})
         max_capture_points = defense_config.get("max_capture_points")
-        safety_buffer = defense_config.get("safety_buffer_seconds", 120)
+        safety_buffer = defense_config.get("safety_buffer_seconds", 10)
 
         if max_capture_points:
             print(f"Spending limit: {max_capture_points} capture points")
@@ -269,7 +269,7 @@ def auto_defend_on_detection(session, pirate_attack_data):
         }
 
     max_capture_points = defense_config.get("max_capture_points")
-    safety_buffer = defense_config.get("safety_buffer_seconds", 120)
+    safety_buffer = defense_config.get("safety_buffer_seconds", 10)
 
     # Execute defense
     result = auto_defend_pirate_attack(
