@@ -226,7 +226,7 @@ def convert_crew_for_defense(session, city, crew_points_to_convert):
 
 
 def auto_defend_pirate_attack(session, target_city_id, attack_arrival_seconds,
-                               max_capture_points=None, safety_buffer_seconds=120):
+                               max_capture_points=None, safety_buffer_seconds=10):
     """
     Automatically convert capture points to crew strength to defend against pirate attack.
 
@@ -242,7 +242,7 @@ def auto_defend_pirate_attack(session, target_city_id, attack_arrival_seconds,
     max_capture_points : int, optional
         Maximum capture points to spend (from user config), default unlimited
     safety_buffer_seconds : int
-        Safety buffer in seconds (default 120)
+        Safety buffer in seconds (default 10)
 
     Returns
     -------
