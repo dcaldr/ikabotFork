@@ -1,0 +1,218 @@
+<div id="militaryMovements">
+                <div id="js_MilitaryMovementsCombatsInProgress" class="contentBox01h invisible" style="z-index: 101;">
+            <h3 class="header">Aktuální boje</h3>
+            <div class="content">
+                <div id="js_MilitaryMovementsCombatList"></div>
+            </div>
+            <div class="footer"></div>
+        </div>
+
+                <div id="js_MilitaryMovementsFleetMovements" class="contentBox01h" style="z-index: 100;">
+            <h3 class="header">Pohyby lodí / jednotek</h3>
+            <div id="militaryMovementsFleetMovementsFilters">
+                <div class="missionFilter selected" data-filter="all">
+                    <div class="mission_icon all">Vše</div>
+                    <div class="amount">3</div>
+                </div>
+                                    <div class="missionFilter" data-filter="transport">
+                        <div class="mission_icon transport"></div>
+                        <div class="amount">1</div>
+                    </div>
+                                        <div class="missionFilter" data-filter="deployarmy">
+                        <div class="mission_icon deployarmy"></div>
+                        <div class="amount">0</div>
+                    </div>
+                                        <div class="missionFilter" data-filter="deployfleet">
+                        <div class="mission_icon deployfleet"></div>
+                        <div class="amount">0</div>
+                    </div>
+                                        <div class="missionFilter" data-filter="trade">
+                        <div class="mission_icon trade"></div>
+                        <div class="amount">0</div>
+                    </div>
+                                        <div class="missionFilter" data-filter="transport_barbarians">
+                        <div class="mission_icon transport_barbarians"></div>
+                        <div class="amount">0</div>
+                    </div>
+                                        <div class="missionFilter" data-filter="defend">
+                        <div class="mission_icon defend"></div>
+                        <div class="amount">0</div>
+                    </div>
+                                        <div class="missionFilter" data-filter="defend_port">
+                        <div class="mission_icon defend_port"></div>
+                        <div class="amount">0</div>
+                    </div>
+                                        <div class="missionFilter" data-filter="plunder">
+                        <div class="mission_icon plunder"></div>
+                        <div class="amount">1</div>
+                    </div>
+                                        <div class="missionFilter" data-filter="occupy">
+                        <div class="mission_icon occupy"></div>
+                        <div class="amount">0</div>
+                    </div>
+                                        <div class="missionFilter" data-filter="blockade">
+                        <div class="mission_icon blockade"></div>
+                        <div class="amount">0</div>
+                    </div>
+                                        <div class="missionFilter" data-filter="barbarianFleet">
+                        <div class="mission_icon barbarianFleet"></div>
+                        <div class="amount">0</div>
+                    </div>
+                                        <div class="missionFilter" data-filter="piracyRaid">
+                        <div class="mission_icon piracyRaid"></div>
+                        <div class="amount">1</div>
+                    </div>
+                                </div>
+            <div id="js_MilitaryMovementsFleetMovementsTable" class="content"><table class="table01 dotted center military_event_table"><tbody><tr><th class="center">Mise</th><th style="width: 65px;">Čas příjezdu</th><th style="width: 36px;"><img src="//gf3.geo.gfsrv.net/cdnbb/3fb7599d95784e298ae442901bc31b.png" height="12" width="36" title="Rychlost" alt="Rychlost"></th><th colspan="2">Jednotky</th><th>Původ</th><th></th><th>Cíl</th><th class="militaryAdvisorActions">Akce</th></tr><tr class="hostile"><td><div class="mission_icon piracyRaid"></div></td><td><span title="Čas příjezdu">18m 56s</span><br><span class="nowrap">(probíhá)</span><br><span class="nowrap" title="Na cestě do: 14:53:05">14:53:05</span></td><td></td><td></td><td class="spyMilitary magnify_icon" onclick="exec('toggleExclusiveInfo', 'fleetInfo81132')"><div class="infoTip brown invisible" id="fleetInfo81132"><a class="close" onclick="exec('toggleExclusiveInfo', 'fleetInfo81132')"></a><h5 class="bold center">Flotila / Jednotky / Náklad</h5><div>Tady si můžeš přečíst více informací o této flotile.</div><div class="centerButton"><a id="offerFleetInfoLink81132" class="orderButton ambrosia" href="?action=transportOperations&amp;function=getFleetInfoForPremium&amp;id=81132&amp;displayedPrice=2" onclick="exec(&quot;confirmBubble&quot;, [ &quot;Dokončit nákup této prémiové funkce za 2 &lt;img width=\&quot;16\&quot; height=\&quot;20\&quot; class=\&quot;no_style vertical_middle\&quot; alt=\&quot;Ambrosia\&quot; src=\&quot;//gf2.geo.gfsrv.net/cdn43/4fdf6de0096451f0fb3e2cc18d8418.png\&quot;&gt; ambrózií?&quot;, [&quot;ikariam.closePopup();ajaxHandlerCall($('#offerFleetInfoLink81132').attr('href')); $(document).trigger('closeExclusiveInfo');&quot;] ]); return false;"><div class="orderButtonIcon"></div><div class="orderPrice center">2</div></a><div class="orderAvailable ambrosia"><div class="available center">30</div></div></div></div></td><td title="Původ" class="source"><a class="short_text100" title="Antakya" href="?view=island&amp;cityId=999">Antakya</a><span title="00miska">(00miska)</span></td><td title="Přepadení (probíhá)" class="mission arrow_right_green"></td><td title="Cíl" class="target"><a class="short_text200" title="Pentelikon" href="?view=island&amp;cityId=1000">Pentelikon</a><span title="pooky756">(pooky756)</span></td><td class="right actions" title="Akce"></td></tr><tr class="alt own"><td><div class="mission_icon plunder"></div></td><td><span title="Čas příjezdu">19m 40s</span><br><span class="nowrap">(Nakládá)</span><br><span class="nowrap" title="Nakládání do: 14:53:49">14:53:49</span></td><td></td><td title="Počet"><div>10 Lodě / 151 Jednotky</div></td><td class="spyMilitary magnify_icon" onclick="exec('toggleExclusiveInfo', 'fleetInfo81076')"><div class="infoTip brown invisible" id="fleetInfo81076"><a class="close" onclick="exec('toggleExclusiveInfo', 'fleetInfo81076')"></a><h5 class="bold center">Flotila / Jednotky / Náklad</h5><div><div class="unit_detail_icon floatleft icon40 bold center ship_transport" title="10">10</div><div class="unit_detail_icon floatleft icon40 bold center slinger" title="30">30</div><div class="unit_detail_icon floatleft icon40 bold center spearman" title="8">8</div><div class="unit_detail_icon floatleft icon40 bold center swordsman" title="12">12</div><div class="unit_detail_icon floatleft icon40 bold center phalanx" title="95">95</div><div class="unit_detail_icon floatleft icon40 bold center ram" title="6">6</div><div class="unit_detail_icon floatleft icon40 bold center resource_icon wood" title="2 520">2 520</div><div class="unit_detail_icon floatleft icon40 bold center resource_icon wine" title="418">418</div><div class="unit_detail_icon floatleft icon40 bold center resource_icon marble" title="626">626</div><div class="unit_detail_icon floatleft icon40 bold center resource_icon glass" title="534">534</div><div class="unit_detail_icon floatleft icon40 bold center resource_icon sulfur" title="742">742</div><div class="unit_detail_icon floatleft icon40 bold center resource_icon gold" title="8 750">8 750</div></div></div></td><td title="Původ" class="source"><a class="short_text100" title="Polis" href="?view=island&amp;cityId=1101">Polis</a><span title="pooky756">(pooky756)</span></td><td title="Drancování (Nakládá)"></td><td title="Cíl" class="target"><a class="short_text200" title="Barbarská vesnice" href="?view=island&amp;islandId=5462">Barbarská vesnice</a><span title="Barbaři">(Barbaři)</span></td><td class="right actions" title="Akce"></td></tr><tr class="own"><td><div class="mission_icon transport"></div></td><td><span title="Čas příjezdu">30m 48s</span><br><span class="nowrap">(probíhá)</span><br><span class="nowrap" title="Na cestě do: 15:04:57">15:04:57</span></td><td class="center"><a onclick="ajaxHandlerCall(&quot;?view=merchantNavy&quot;); return false;" href="#">0%</a></td><td title="Počet"><div>4 Lodě</div></td><td class="spyMilitary magnify_icon" onclick="exec('toggleExclusiveInfo', 'fleetInfo81016')"><div class="infoTip brown invisible" id="fleetInfo81016"><a class="close" onclick="exec('toggleExclusiveInfo', 'fleetInfo81016')"></a><h5 class="bold center">Flotila / Jednotky / Náklad</h5><div><div class="unit_detail_icon floatleft icon40 bold center ship_transport" title="4">4</div><div class="unit_detail_icon floatleft icon40 bold center resource_icon wood" title="2 000">2 000</div></div></div></td><td title="Původ" class="source"><a class="short_text100" title="Řím" href="?view=island&amp;cityId=912">Řím</a><span title="pooky756">(pooky756)</span></td><td title="Transport (probíhá)" class="mission arrow_right_green"></td><td title="Cíl" class="target"><a class="short_text200" title="Pentelikon" href="?view=island&amp;cityId=1000">Pentelikon</a><span title="pooky756">(pooky756)</span></td><td class="right actions" title="Akce"><a class="action_icon abort" href="?action=transportOperations&amp;function=abortFleetOperation&amp;eventId=81016&amp;oldView=militaryAdvisor&amp;activeTab=militaryMovements" title="Stáhnout se" onclick="ikariam.closePopup();ajaxHandlerCall(this.href); return false;"></a></td></tr></tbody></table></div>
+            <div class="footer"></div>
+        </div>
+
+                <div id="js_MilitaryMovementsOccupiedCities" class="contentBox01h">
+            <h3 class="header">Okupovaná města</h3>
+            <div id="js_MilitaryMovementsOccupiedCitiesTable" class="content"><table class="table01 dotted center military_event_table">
+    <tbody><tr>
+        <th width="30%">Město</th>
+        <th width="12%">Úroveň</th>
+        <th width="30%">Ostrov</th>
+        <th width="12%">Surovina</th>
+        <th width="12%">Akce</th>
+    </tr>
+
+            <tr>
+            <td colspan="5">Neokupujete žádné město.</td>
+        </tr>
+        </tbody></table></div>
+            <div class="footer"></div>
+        </div>
+
+                <div id="js_MilitaryMovementsOccupiedPorts" class="contentBox01h">
+            <h3 class="header">Obsazené přístavy</h3>
+            <div id="js_MilitaryMovementsOccupiedPortsTable" class="content"><table class="table01 dotted center military_event_table">
+    <tbody><tr>
+        <th width="30%">Město</th>
+        <th width="12%">Úroveň</th>
+        <th width="30%">Ostrov</th>
+        <th width="12%">Surovina</th>
+        <th width="12%">Akce</th>
+    </tr>
+
+            <tr>
+            <td colspan="5">Neokupujete žádné přístavy.</td>
+        </tr>
+        </tbody></table></div>
+            <div class="footer"></div>
+        </div>
+    </div>
+
+
+    document.querySelector("#militaryMovements")
+    /html/body/div/div[16]/div/div[2]/div[2]/div[3]
+
+
+
+
+    <div id="militaryMovements">
+                <div id="js_MilitaryMovementsCombatsInProgress" class="contentBox01h invisible" style="z-index: 101;">
+            <h3 class="header">Aktuální boje</h3>
+            <div class="content">
+                <div id="js_MilitaryMovementsCombatList"></div>
+            </div>
+            <div class="footer"></div>
+        </div>
+
+                <div id="js_MilitaryMovementsFleetMovements" class="contentBox01h" style="z-index: 100;">
+            <h3 class="header">Pohyby lodí / jednotek</h3>
+            <div id="militaryMovementsFleetMovementsFilters">
+                <div class="missionFilter selected" data-filter="all">
+                    <div class="mission_icon all">Vše</div>
+                    <div class="amount">3</div>
+                </div>
+                                    <div class="missionFilter" data-filter="transport">
+                        <div class="mission_icon transport"></div>
+                        <div class="amount">1</div>
+                    </div>
+                                        <div class="missionFilter" data-filter="deployarmy">
+                        <div class="mission_icon deployarmy"></div>
+                        <div class="amount">0</div>
+                    </div>
+                                        <div class="missionFilter" data-filter="deployfleet">
+                        <div class="mission_icon deployfleet"></div>
+                        <div class="amount">0</div>
+                    </div>
+                                        <div class="missionFilter" data-filter="trade">
+                        <div class="mission_icon trade"></div>
+                        <div class="amount">0</div>
+                    </div>
+                                        <div class="missionFilter" data-filter="transport_barbarians">
+                        <div class="mission_icon transport_barbarians"></div>
+                        <div class="amount">0</div>
+                    </div>
+                                        <div class="missionFilter" data-filter="defend">
+                        <div class="mission_icon defend"></div>
+                        <div class="amount">0</div>
+                    </div>
+                                        <div class="missionFilter" data-filter="defend_port">
+                        <div class="mission_icon defend_port"></div>
+                        <div class="amount">0</div>
+                    </div>
+                                        <div class="missionFilter" data-filter="plunder">
+                        <div class="mission_icon plunder"></div>
+                        <div class="amount">1</div>
+                    </div>
+                                        <div class="missionFilter" data-filter="occupy">
+                        <div class="mission_icon occupy"></div>
+                        <div class="amount">0</div>
+                    </div>
+                                        <div class="missionFilter" data-filter="blockade">
+                        <div class="mission_icon blockade"></div>
+                        <div class="amount">0</div>
+                    </div>
+                                        <div class="missionFilter" data-filter="barbarianFleet">
+                        <div class="mission_icon barbarianFleet"></div>
+                        <div class="amount">0</div>
+                    </div>
+                                        <div class="missionFilter" data-filter="piracyRaid">
+                        <div class="mission_icon piracyRaid"></div>
+                        <div class="amount">1</div>
+                    </div>
+                                </div>
+            <div id="js_MilitaryMovementsFleetMovementsTable" class="content"><table class="table01 dotted center military_event_table"><tbody><tr><th class="center">Mise</th><th style="width: 65px;">Čas příjezdu</th><th style="width: 36px;"><img src="//gf3.geo.gfsrv.net/cdnbb/3fb7599d95784e298ae442901bc31b.png" height="12" width="36" title="Rychlost" alt="Rychlost"></th><th colspan="2">Jednotky</th><th>Původ</th><th></th><th>Cíl</th><th class="militaryAdvisorActions">Akce</th></tr><tr class="hostile"><td><div class="mission_icon piracyRaid"></div></td><td><span title="Čas příjezdu">18m 04s</span><br><span class="nowrap">(probíhá)</span><br><span class="nowrap" title="Na cestě do: 14:53:05">14:53:05</span></td><td></td><td></td><td class="spyMilitary magnify_icon" onclick="exec('toggleExclusiveInfo', 'fleetInfo81132')"><div class="infoTip brown invisible" id="fleetInfo81132"><a class="close" onclick="exec('toggleExclusiveInfo', 'fleetInfo81132')"></a><h5 class="bold center">Flotila / Jednotky / Náklad</h5><div>Tady si můžeš přečíst více informací o této flotile.</div><div class="centerButton"><a id="offerFleetInfoLink81132" class="orderButton ambrosia" href="?action=transportOperations&amp;function=getFleetInfoForPremium&amp;id=81132&amp;displayedPrice=2" onclick="exec(&quot;confirmBubble&quot;, [ &quot;Dokončit nákup této prémiové funkce za 2 &lt;img width=\&quot;16\&quot; height=\&quot;20\&quot; class=\&quot;no_style vertical_middle\&quot; alt=\&quot;Ambrosia\&quot; src=\&quot;//gf2.geo.gfsrv.net/cdn43/4fdf6de0096451f0fb3e2cc18d8418.png\&quot;&gt; ambrózií?&quot;, [&quot;ikariam.closePopup();ajaxHandlerCall($('#offerFleetInfoLink81132').attr('href')); $(document).trigger('closeExclusiveInfo');&quot;] ]); return false;"><div class="orderButtonIcon"></div><div class="orderPrice center">2</div></a><div class="orderAvailable ambrosia"><div class="available center">30</div></div></div></div></td><td title="Původ" class="source"><a class="short_text100" title="Antakya" href="?view=island&amp;cityId=999">Antakya</a><span title="00miska">(00miska)</span></td><td title="Přepadení (probíhá)" class="mission arrow_right_green"></td><td title="Cíl" class="target"><a class="short_text200" title="Pentelikon" href="?view=island&amp;cityId=1000">Pentelikon</a><span title="pooky756">(pooky756)</span></td><td class="right actions" title="Akce"></td></tr><tr class="alt own"><td><div class="mission_icon plunder"></div></td><td><span title="Čas příjezdu">18m 48s</span><br><span class="nowrap">(Nakládá)</span><br><span class="nowrap" title="Nakládání do: 14:53:49">14:53:49</span></td><td></td><td title="Počet"><div>10 Lodě / 151 Jednotky</div></td><td class="spyMilitary magnify_icon" onclick="exec('toggleExclusiveInfo', 'fleetInfo81076')"><div class="infoTip brown invisible" id="fleetInfo81076"><a class="close" onclick="exec('toggleExclusiveInfo', 'fleetInfo81076')"></a><h5 class="bold center">Flotila / Jednotky / Náklad</h5><div><div class="unit_detail_icon floatleft icon40 bold center ship_transport" title="10">10</div><div class="unit_detail_icon floatleft icon40 bold center slinger" title="30">30</div><div class="unit_detail_icon floatleft icon40 bold center spearman" title="8">8</div><div class="unit_detail_icon floatleft icon40 bold center swordsman" title="12">12</div><div class="unit_detail_icon floatleft icon40 bold center phalanx" title="95">95</div><div class="unit_detail_icon floatleft icon40 bold center ram" title="6">6</div><div class="unit_detail_icon floatleft icon40 bold center resource_icon wood" title="2 520">2 520</div><div class="unit_detail_icon floatleft icon40 bold center resource_icon wine" title="418">418</div><div class="unit_detail_icon floatleft icon40 bold center resource_icon marble" title="626">626</div><div class="unit_detail_icon floatleft icon40 bold center resource_icon glass" title="534">534</div><div class="unit_detail_icon floatleft icon40 bold center resource_icon sulfur" title="742">742</div><div class="unit_detail_icon floatleft icon40 bold center resource_icon gold" title="8 750">8 750</div></div></div></td><td title="Původ" class="source"><a class="short_text100" title="Polis" href="?view=island&amp;cityId=1101">Polis</a><span title="pooky756">(pooky756)</span></td><td title="Drancování (Nakládá)"></td><td title="Cíl" class="target"><a class="short_text200" title="Barbarská vesnice" href="?view=island&amp;islandId=5462">Barbarská vesnice</a><span title="Barbaři">(Barbaři)</span></td><td class="right actions" title="Akce"></td></tr><tr class="own"><td><div class="mission_icon transport"></div></td><td><span title="Čas příjezdu">29m 56s</span><br><span class="nowrap">(probíhá)</span><br><span class="nowrap" title="Na cestě do: 15:04:57">15:04:57</span></td><td class="center"><a onclick="ajaxHandlerCall(&quot;?view=merchantNavy&quot;); return false;" href="#">0%</a></td><td title="Počet"><div>4 Lodě</div></td><td class="spyMilitary magnify_icon" onclick="exec('toggleExclusiveInfo', 'fleetInfo81016')"><div class="infoTip brown invisible" id="fleetInfo81016"><a class="close" onclick="exec('toggleExclusiveInfo', 'fleetInfo81016')"></a><h5 class="bold center">Flotila / Jednotky / Náklad</h5><div><div class="unit_detail_icon floatleft icon40 bold center ship_transport" title="4">4</div><div class="unit_detail_icon floatleft icon40 bold center resource_icon wood" title="2 000">2 000</div></div></div></td><td title="Původ" class="source"><a class="short_text100" title="Řím" href="?view=island&amp;cityId=912">Řím</a><span title="pooky756">(pooky756)</span></td><td title="Transport (probíhá)" class="mission arrow_right_green"></td><td title="Cíl" class="target"><a class="short_text200" title="Pentelikon" href="?view=island&amp;cityId=1000">Pentelikon</a><span title="pooky756">(pooky756)</span></td><td class="right actions" title="Akce"><a class="action_icon abort" href="?action=transportOperations&amp;function=abortFleetOperation&amp;eventId=81016&amp;oldView=militaryAdvisor&amp;activeTab=militaryMovements" title="Stáhnout se" onclick="ikariam.closePopup();ajaxHandlerCall(this.href); return false;"></a></td></tr></tbody></table></div>
+            <div class="footer"></div>
+        </div>
+
+                <div id="js_MilitaryMovementsOccupiedCities" class="contentBox01h">
+            <h3 class="header">Okupovaná města</h3>
+            <div id="js_MilitaryMovementsOccupiedCitiesTable" class="content"><table class="table01 dotted center military_event_table">
+    <tbody><tr>
+        <th width="30%">Město</th>
+        <th width="12%">Úroveň</th>
+        <th width="30%">Ostrov</th>
+        <th width="12%">Surovina</th>
+        <th width="12%">Akce</th>
+    </tr>
+
+            <tr>
+            <td colspan="5">Neokupujete žádné město.</td>
+        </tr>
+        </tbody></table></div>
+            <div class="footer"></div>
+        </div>
+
+                <div id="js_MilitaryMovementsOccupiedPorts" class="contentBox01h">
+            <h3 class="header">Obsazené přístavy</h3>
+            <div id="js_MilitaryMovementsOccupiedPortsTable" class="content"><table class="table01 dotted center military_event_table">
+    <tbody><tr>
+        <th width="30%">Město</th>
+        <th width="12%">Úroveň</th>
+        <th width="30%">Ostrov</th>
+        <th width="12%">Surovina</th>
+        <th width="12%">Akce</th>
+    </tr>
+
+            <tr>
+            <td colspan="5">Neokupujete žádné přístavy.</td>
+        </tr>
+        </tbody></table></div>
+            <div class="footer"></div>
+        </div>
+    </div>
