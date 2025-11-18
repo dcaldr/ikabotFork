@@ -59,7 +59,11 @@ def main():
     # Auto-detection mode
     try:
         from ikabot.web.session import Session
+        from ikabot.command_line import init as ikabot_init
         from plugins.telegram.setup import isIkaChefConfigured
+
+        # Initialize ikabot (changes to HOME directory where .ikabot lives)
+        ikabot_init()
 
         # Create session to check configuration
         session = Session()
