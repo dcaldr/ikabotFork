@@ -226,7 +226,7 @@ def convert_crew_for_defense(session, city, crew_points_to_convert):
 
 
 def auto_defend_pirate_attack(session, target_city_id, attack_arrival_seconds,
-                               max_capture_points=None, safety_buffer_seconds=10):
+                               max_capture_points=None, safety_buffer_seconds=10, allow_bonus_loss=False):
     """
     Automatically convert capture points to crew strength to defend against pirate attack.
 
@@ -243,6 +243,8 @@ def auto_defend_pirate_attack(session, target_city_id, attack_arrival_seconds,
         Maximum capture points to spend (from user config), default unlimited
     safety_buffer_seconds : int
         Safety buffer in seconds (default 10)
+    allow_bonus_loss : bool
+        Allow spending that drops below 7000 points (loses crew bonus), default False
 
     Returns
     -------
@@ -311,6 +313,13 @@ def auto_defend_pirate_attack(session, target_city_id, attack_arrival_seconds,
             crew_to_convert = min(max_crew_by_time, max_crew_by_points, max_crew_by_limit)
         else:
             crew_to_convert = min(max_crew_by_time, max_crew_by_points)
+
+        # 7b. Apply 7000 points bonus threshold protection if enabled
+        if not allow_bonus_loss and available_capture_points >= 7000:
+            # Calculate max crew that keeps us at exactly 7000 points (preserve bonus)
+            max_spend_for_bonus = available_capture_points - 7000
+            max_crew_by_bonus = max_spend_for_bonus // conversion_data["points_per_crew"]
+            crew_to_convert = min(crew_to_convert, max_crew_by_bonus)
 
         if crew_to_convert == 0:
             result["reason"] = "Calculated 0 crew to convert (time/points/limit constraints)"

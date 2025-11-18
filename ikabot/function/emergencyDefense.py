@@ -56,12 +56,18 @@ def configure_auto_defense(session):
         print("Note: Conversion has ~156 second base time + 7 sec per crew point")
         safety_buffer = read(msg="Safety buffer (default: 10): ", min=0, digit=True, default=10)
 
+        print("\nCapture Points Bonus Protection (7000 points threshold):")
+        print("When you have 7000+ capture points, you have a crew strength bonus.")
+        print("Spending below 7000 points loses this bonus (regained at 7000 again).")
+        allow_bonus_loss = read(msg="Allow spending that drops below 7000 points? (yes loses bonus) (y/N): ", values=["y", "Y", "n", "N", ""])
+
         # Store configuration
         session_data = session.getSessionData()
         session_data["auto_pirate_defense"] = {
             "enabled": True,
             "max_capture_points": max_capture_points,
-            "safety_buffer_seconds": safety_buffer
+            "safety_buffer_seconds": safety_buffer,
+            "allow_bonus_loss": allow_bonus_loss.lower() == "y"
         }
         session.setSessionData(session_data)
 
@@ -74,6 +80,9 @@ def configure_auto_defense(session):
             print(f"✓ Auto-defense ENABLED")
             print(f"  Max capture points: UNLIMITED")
             print(f"  Safety buffer: {safety_buffer} seconds")
+
+        bonus_protection = "YES (protect bonus)" if not allow_bonus_loss.lower() == "y" else "NO (allow bonus loss)"
+        print(f"  7000 points threshold: {bonus_protection}")
         print("="*50)
     else:
         # Ensure disabled
@@ -178,6 +187,7 @@ def emergencyDefense(session, event, stdin_fd, predetermined_input):
         defense_config = session_data.get("auto_pirate_defense", {})
         max_capture_points = defense_config.get("max_capture_points")
         safety_buffer = defense_config.get("safety_buffer_seconds", 10)
+        allow_bonus_loss = defense_config.get("allow_bonus_loss", False)
 
         if max_capture_points:
             print(f"Spending limit: {max_capture_points} capture points")
@@ -208,7 +218,8 @@ def emergencyDefense(session, event, stdin_fd, predetermined_input):
             target_city_id=target_city_id,
             attack_arrival_seconds=time_left,
             max_capture_points=max_capture_points,
-            safety_buffer_seconds=safety_buffer
+            safety_buffer_seconds=safety_buffer,
+            allow_bonus_loss=allow_bonus_loss
         )
 
         # Display result
@@ -270,6 +281,7 @@ def auto_defend_on_detection(session, pirate_attack_data):
 
     max_capture_points = defense_config.get("max_capture_points")
     safety_buffer = defense_config.get("safety_buffer_seconds", 10)
+    allow_bonus_loss = defense_config.get("allow_bonus_loss", False)
 
     # Execute defense
     result = auto_defend_pirate_attack(
@@ -277,7 +289,8 @@ def auto_defend_on_detection(session, pirate_attack_data):
         target_city_id=pirate_attack_data["target_city_id"],
         attack_arrival_seconds=pirate_attack_data["time_left"],
         max_capture_points=max_capture_points,
-        safety_buffer_seconds=safety_buffer
+        safety_buffer_seconds=safety_buffer,
+        allow_bonus_loss=allow_bonus_loss
     )
 
     return result
