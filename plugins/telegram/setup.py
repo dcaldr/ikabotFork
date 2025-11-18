@@ -120,11 +120,11 @@ def setupIkaChef(session):
         if "shared" not in session_data:
             session_data["shared"] = {}
 
-        if "telegramMenu" not in session_data["shared"]:
-            session_data["shared"]["telegramMenu"] = {}
+        if "ikaChef" not in session_data["shared"]:
+            session_data["shared"]["ikaChef"] = {}
 
-        session_data["shared"]["telegramMenu"]["botToken"] = bot_token
-        session_data["shared"]["telegramMenu"]["chatId"] = str(chat_id)
+        session_data["shared"]["ikaChef"]["botToken"] = bot_token
+        session_data["shared"]["ikaChef"]["chatId"] = str(chat_id)
 
         session.setSessionData(session_data, shared=True)
 
@@ -184,16 +184,16 @@ def isIkaChefConfigured(session):
         if "shared" not in session_data:
             return False
 
-        if "telegramMenu" not in session_data["shared"]:
+        if "ikaChef" not in session_data["shared"]:
             return False
 
-        telegram_menu = session_data["shared"]["telegramMenu"]
+        ikachef_config = session_data["shared"]["ikaChef"]
 
-        if "botToken" not in telegram_menu or "chatId" not in telegram_menu:
+        if "botToken" not in ikachef_config or "chatId" not in ikachef_config:
             return False
 
-        bot_token = telegram_menu["botToken"]
-        chat_id = telegram_menu["chatId"]
+        bot_token = ikachef_config["botToken"]
+        chat_id = ikachef_config["chatId"]
 
         if not bot_token or not chat_id:
             return False
