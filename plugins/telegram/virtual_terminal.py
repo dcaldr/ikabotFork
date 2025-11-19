@@ -78,8 +78,17 @@ class TeeStdout:
                 from plugins.telegram.ikachef_comm import sendToIkaChef
 
                 sendToIkaChef(self.session, formatted, Token=True)
-            except Exception:
-                pass  # Silently ignore send errors
+            except Exception as e:
+                # If ikaChef fails, notify user via notification bot (fallback)
+                try:
+                    from ikabot.helpers.botComm import sendToBot
+                    sendToBot(
+                        self.session,
+                        f"⚠️ ikaChef send failed: {str(e)}\n\nCheck ikaChef bot configuration.",
+                        Token=False
+                    )
+                except Exception:
+                    pass  # Both bots failed, nothing we can do
 
             self.telegram_buffer = []
 
