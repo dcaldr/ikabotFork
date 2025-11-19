@@ -8,7 +8,7 @@ import threading
 from queue import Queue
 
 from ikabot.command_line import menu
-from ikabot.helpers.botComm import sendToBot
+from plugins.telegram.ikachef_comm import sendToIkaChef
 from plugins.telegram.virtual_terminal import MultiplexedInputStream, TeeStdout
 from plugins.telegram.formatter import ANSIFormatter
 from plugins.telegram.poller import TelegramPoller
@@ -65,7 +65,7 @@ class TelegramBot:
 
         # Send welcome message
         try:
-            sendToBot(
+            sendToIkaChef(
                 self.session,
                 "🤖 Telegram Bot Started (Quiet Mode)\n\n"
                 f"Use /{COMMANDS['view']} to see current screen\n"
@@ -98,16 +98,16 @@ class TelegramBot:
                     except Exception:
                         pass
 
-                sendToBot(
+                sendToIkaChef(
                     self.session,
                     f"🛑 Stopped bot and killed {len(process_list)} tasks",
                     Token=True,
                 )
             except Exception:
-                sendToBot(self.session, "🛑 Bot stopped", Token=True)
+                sendToIkaChef(self.session, "🛑 Bot stopped", Token=True)
         else:
             try:
-                sendToBot(self.session, "🛑 Bot stopped", Token=True)
+                sendToIkaChef(self.session, "🛑 Bot stopped", Token=True)
             except Exception:
                 pass
 
@@ -133,7 +133,7 @@ class TelegramBot:
         # First non-command message → auto-enable monitoring
         if self.output_control.on_first_message():
             try:
-                sendToBot(self.session, "📢 Monitoring started", Token=True)
+                sendToIkaChef(self.session, "📢 Monitoring started", Token=True)
             except Exception:
                 pass
 
@@ -153,7 +153,7 @@ class TelegramBot:
             chunks = self.screen_buffer.get_screen()
             for chunk in chunks:
                 try:
-                    sendToBot(self.session, chunk, Token=True)
+                    sendToIkaChef(self.session, chunk, Token=True)
                 except Exception:
                     pass
 
@@ -161,7 +161,7 @@ class TelegramBot:
         elif cmd == f"/{COMMANDS['monitor']}":
             self.output_control.set_monitor()
             try:
-                sendToBot(self.session, "📢 Monitoring started", Token=True)
+                sendToIkaChef(self.session, "📢 Monitoring started", Token=True)
             except Exception:
                 pass
 
@@ -169,7 +169,7 @@ class TelegramBot:
         elif cmd == f"/{COMMANDS['mute']}":
             self.output_control.set_quiet()
             try:
-                sendToBot(self.session, "🔇 Muted", Token=True)
+                sendToIkaChef(self.session, "🔇 Muted", Token=True)
             except Exception:
                 pass
 
@@ -180,7 +180,7 @@ class TelegramBot:
             if len(parts) == 1:
                 # Just /stop - ask for confirmation
                 try:
-                    sendToBot(
+                    sendToIkaChef(
                         self.session,
                         "Stop telegram bot?\n\n"
                         f"/{COMMANDS['stop']} bot - Stop bot only\n"
@@ -208,6 +208,6 @@ class TelegramBot:
                 "Send any number to interact with menu"
             )
             try:
-                sendToBot(self.session, help_text, Token=True)
+                sendToIkaChef(self.session, help_text, Token=True)
             except Exception:
                 pass

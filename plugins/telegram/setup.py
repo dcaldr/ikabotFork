@@ -121,38 +121,16 @@ def setupIkaChef(session):
         ikachef_data["ikaChef"]["chatId"] = str(chat_id)
         session.setSessionData(ikachef_data, shared=True)
 
-        # Send confirmation message
+        # Send confirmation message to ikaChef bot (no credential swapping needed)
         try:
-            from ikabot.helpers.botComm import sendToBot
+            from plugins.telegram.ikachef_comm import sendToIkaChef
 
-            # Check if user has notification bot configured
-            session_data = session.getSessionData()
-            has_notification_bot = (
-                "shared" in session_data and "telegram" in session_data["shared"]
-            )
-            if has_notification_bot:
-                original_telegram = session_data["shared"]["telegram"].copy()
-
-            # Temporarily swap to ikaChef credentials for confirmation message
-            telegram_swap = {}
-            telegram_swap["telegram"] = {}
-            telegram_swap["telegram"]["botToken"] = bot_token
-            telegram_swap["telegram"]["chatId"] = str(chat_id)
-            session.setSessionData(telegram_swap, shared=True)
-
-            sendToBot(
+            sendToIkaChef(
                 session,
                 "👨‍🍳 ikaChef configured successfully!\n\n"
                 "You can now run: python telegram_bot.py",
                 Token=True,
             )
-
-            # Restore original notification bot (only if it existed)
-            if has_notification_bot:
-                telegram_restore = {}
-                telegram_restore["telegram"] = original_telegram
-                session.setSessionData(telegram_restore, shared=True)
-
         except Exception:
             pass  # Non-critical if confirmation fails
 

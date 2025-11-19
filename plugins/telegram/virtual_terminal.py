@@ -73,11 +73,11 @@ class TeeStdout:
             text = "".join(self.telegram_buffer)
             formatted = self.formatter.convert(text)
 
-            # Send to Telegram
+            # Send to ikaChef bot
             try:
-                from ikabot.helpers.botComm import sendToBot
+                from plugins.telegram.ikachef_comm import sendToIkaChef
 
-                sendToBot(self.session, formatted, Token=True)
+                sendToIkaChef(self.session, formatted, Token=True)
             except Exception:
                 pass  # Silently ignore send errors
 
