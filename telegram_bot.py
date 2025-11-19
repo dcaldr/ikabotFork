@@ -11,6 +11,7 @@ Input can come from either terminal or Telegram.
 Usage:
     python telegram_bot.py                # Run ikaChef bot
     python telegram_bot.py --reconfigure  # Reconfigure bot credentials
+    python telegram_bot.py --delete       # Delete ikaChef credentials
 
 Requirements:
     - Must have valid Telegram credentials (use ikabot CLI first: menu 21 -> 2)
@@ -27,7 +28,7 @@ from plugins.telegram.screen_buffer import ScreenBuffer
 from plugins.telegram.virtual_terminal import MultiplexedInputStream, TeeStdout
 from plugins.telegram.formatter import ANSIFormatter
 from plugins.telegram.output_control import OutputControl
-from plugins.telegram.setup import isIkaChefConfigured, setupIkaChef
+from plugins.telegram.setup import isIkaChefConfigured, setupIkaChef, deleteIkaChef
 
 
 def setup_clear_detection(screen_buffer):
@@ -61,6 +62,7 @@ def main():
 
     # Parse command-line arguments
     force_reconfigure = "--reconfigure" in sys.argv
+    force_delete = "--delete" in sys.argv
 
     # Initialize ikabot (changes to HOME directory where .ikabot lives)
     init()
@@ -74,6 +76,18 @@ def main():
         print("❌ Error: Not logged into Ikariam")
         print("Please run 'ikabot' first and log in")
         return 1
+
+    # Handle delete request
+    if force_delete:
+        print("🗑️  Deleting ikaChef credentials...")
+        print()
+        if deleteIkaChef(session):
+            print()
+            print("ikaChef has been removed from your session.")
+            print("You can reconfigure it anytime with: python ikachef.py --chef")
+            return 0
+        else:
+            return 1
 
     # Check if ikaChef is configured
     is_configured = isIkaChefConfigured(session)
