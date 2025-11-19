@@ -14,6 +14,7 @@ Usage:
     python ikachef.py --chef         # Force ikaChef mode (with setup if needed)
     python ikachef.py --cli          # Force normal CLI mode
     python ikachef.py --reconfigure  # Reconfigure ikaChef bot credentials
+    python ikachef.py --delete       # Delete ikaChef bot credentials
 
 Maintains zero coupling with core ikabot files.
 """
@@ -29,8 +30,9 @@ def main():
     force_chef = "--chef" in sys.argv
     force_cli = "--cli" in sys.argv
     force_reconfigure = "--reconfigure" in sys.argv
+    force_delete = "--delete" in sys.argv
 
-    # Remove our custom args before passing to ikabot (keep --reconfigure for telegram_bot)
+    # Remove our custom args before passing to ikabot (keep --reconfigure and --delete for telegram_bot)
     sys.argv = [arg for arg in sys.argv if arg not in ["--chef", "--cli"]]
 
     # Force modes if requested
@@ -40,8 +42,10 @@ def main():
         ikabot_main()
         return
 
-    if force_reconfigure or force_chef:
-        if force_reconfigure:
+    if force_delete or force_reconfigure or force_chef:
+        if force_delete:
+            print("👨‍🍳 Launching ikaChef mode (delete credentials)")
+        elif force_reconfigure:
             print("👨‍🍳 Launching ikaChef mode (reconfigure)")
         else:
             print("👨‍🍳 Launching ikaChef mode (forced)")

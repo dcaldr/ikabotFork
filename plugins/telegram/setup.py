@@ -147,6 +147,67 @@ def setupIkaChef(session):
         return False
 
 
+def deleteIkaChef(session):
+    """Delete ikaChef credentials from session
+
+    Args:
+        session: ikabot Session object
+
+    Returns:
+        bool: True if deletion successful, False otherwise
+    """
+    try:
+        session_data = session.getSessionData()
+
+        if "shared" not in session_data or "ikaChef" not in session_data["shared"]:
+            print("❌ ikaChef is not configured (nothing to delete)")
+            return False
+
+        # Remove ikaChef key from shared section
+        # We need to get full session, remove the key, then save back
+        full_data = session.getSessionData()
+        if "shared" in full_data and "ikaChef" in full_data["shared"]:
+            del full_data["shared"]["ikaChef"]
+
+            # Save the modified session (pass only what changed in shared)
+            # Actually, we need to delete the key, so we'll do a full save
+            # Since setSessionData with shared=True merges, we can't delete
+            # We need to save the entire session structure
+            session_data_all = session.cipher.getSessionData(session, all=True)
+            if "shared" in session_data_all and "ikaChef" in session_data_all["shared"]:
+                del session_data_all["shared"]["ikaChef"]
+
+            # Write back the full structure
+            import json
+            plaintext = json.dumps(session_data_all)
+            ciphertext = session.cipher.encrypt(plaintext)
+
+            from ikabot.helpers.aesCipher import ikaFile
+            with open(ikaFile, "r") as filehandler:
+                data = filehandler.read()
+
+            entry_key = session.cipher.getEntryKey(session)
+            newFile = ""
+            newline = entry_key + " " + ciphertext
+            for line in data.split("\n"):
+                if entry_key != line[:64]:
+                    newFile += line + "\n"
+            newFile += newline + "\n"
+
+            with open(ikaFile, "w") as filehandler:
+                filehandler.write(newFile.strip())
+                filehandler.flush()
+
+            print("✅ ikaChef credentials deleted from session")
+            return True
+
+        return False
+
+    except Exception as e:
+        print(f"❌ Error deleting ikaChef credentials: {e}")
+        return False
+
+
 def isIkaChefConfigured(session):
     """Check if ikaChef credentials are configured
 
