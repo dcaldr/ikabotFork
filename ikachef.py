@@ -10,9 +10,10 @@ the appropriate mode:
 - If not configured → Run normal ikabot CLI mode
 
 Usage:
-    python ikachef.py           # Auto-detect mode
-    python ikachef.py --chef    # Force ikaChef mode (with setup if needed)
-    python ikachef.py --cli     # Force normal CLI mode
+    python ikachef.py                # Auto-detect mode
+    python ikachef.py --chef         # Force ikaChef mode (with setup if needed)
+    python ikachef.py --cli          # Force normal CLI mode
+    python ikachef.py --reconfigure  # Reconfigure ikaChef bot credentials
 
 Maintains zero coupling with core ikabot files.
 """
@@ -27,8 +28,9 @@ def main():
     # Parse command line arguments
     force_chef = "--chef" in sys.argv
     force_cli = "--cli" in sys.argv
+    force_reconfigure = "--reconfigure" in sys.argv
 
-    # Remove our custom args before passing to ikabot
+    # Remove our custom args before passing to ikabot (keep --reconfigure for telegram_bot)
     sys.argv = [arg for arg in sys.argv if arg not in ["--chef", "--cli"]]
 
     # Force modes if requested
@@ -38,8 +40,11 @@ def main():
         ikabot_main()
         return
 
-    if force_chef:
-        print("👨‍🍳 Launching ikaChef mode (forced)")
+    if force_reconfigure or force_chef:
+        if force_reconfigure:
+            print("👨‍🍳 Launching ikaChef mode (reconfigure)")
+        else:
+            print("👨‍🍳 Launching ikaChef mode (forced)")
         try:
             from telegram_bot import main as ikachef_main
             ikachef_main()

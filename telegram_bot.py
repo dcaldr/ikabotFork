@@ -9,7 +9,8 @@ Terminal output is captured and can be viewed via Telegram.
 Input can come from either terminal or Telegram.
 
 Usage:
-    python telegram_bot.py
+    python telegram_bot.py                # Run ikaChef bot
+    python telegram_bot.py --reconfigure  # Reconfigure bot credentials
 
 Requirements:
     - Must have valid Telegram credentials (use ikabot CLI first: menu 21 -> 2)
@@ -58,6 +59,9 @@ def main():
     print("👨‍🍳 ikaChef - Interactive Menu via Telegram")
     print("=" * 40)
 
+    # Parse command-line arguments
+    force_reconfigure = "--reconfigure" in sys.argv
+
     # Initialize ikabot (changes to HOME directory where .ikabot lives)
     init()
 
@@ -72,7 +76,16 @@ def main():
         return 1
 
     # Check if ikaChef is configured
-    if not isIkaChefConfigured(session):
+    is_configured = isIkaChefConfigured(session)
+
+    # Handle reconfigure request
+    if force_reconfigure and is_configured:
+        print("🔄 Reconfiguring ikaChef...")
+        print()
+        if not setupIkaChef(session):
+            print("Setup failed. Please try again.")
+            return 1
+    elif not is_configured:
         print("❌ ikaChef not configured")
         print()
         print("ikaChef is SEPARATE from your notification bot.")
