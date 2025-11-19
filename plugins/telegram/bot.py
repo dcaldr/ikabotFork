@@ -27,6 +27,23 @@ COMMANDS = {
 # ==================================
 
 
+def _sendWithFallback(session, msg, Token=True):
+    """Send to ikaChef bot, fallback to notification bot on failure"""
+    try:
+        sendToIkaChef(session, msg, Token=Token)
+    except Exception as e:
+        # Fallback to notification bot if ikaChef fails
+        try:
+            from ikabot.helpers.botComm import sendToBot
+            sendToBot(
+                session,
+                f"⚠️ ikaChef failed: {str(e)}\n\nOriginal message:\n{msg}",
+                Token=False
+            )
+        except Exception:
+            pass  # Both bots failed
+
+
 class TelegramBot:
     """Main bot - runs parallel to CLI, both work simultaneously"""
 
@@ -65,7 +82,7 @@ class TelegramBot:
 
         # Send welcome message
         try:
-            sendToIkaChef(
+            _sendWithFallback(
                 self.session,
                 "🤖 Telegram Bot Started (Quiet Mode)\n\n"
                 f"Use /{COMMANDS['view']} to see current screen\n"
@@ -98,16 +115,16 @@ class TelegramBot:
                     except Exception:
                         pass
 
-                sendToIkaChef(
+                _sendWithFallback(
                     self.session,
                     f"🛑 Stopped bot and killed {len(process_list)} tasks",
                     Token=True,
                 )
             except Exception:
-                sendToIkaChef(self.session, "🛑 Bot stopped", Token=True)
+                _sendWithFallback(self.session, "🛑 Bot stopped", Token=True)
         else:
             try:
-                sendToIkaChef(self.session, "🛑 Bot stopped", Token=True)
+                _sendWithFallback(self.session, "🛑 Bot stopped", Token=True)
             except Exception:
                 pass
 
@@ -133,7 +150,7 @@ class TelegramBot:
         # First non-command message → auto-enable monitoring
         if self.output_control.on_first_message():
             try:
-                sendToIkaChef(self.session, "📢 Monitoring started", Token=True)
+                _sendWithFallback(self.session, "📢 Monitoring started", Token=True)
             except Exception:
                 pass
 
@@ -153,7 +170,7 @@ class TelegramBot:
             chunks = self.screen_buffer.get_screen()
             for chunk in chunks:
                 try:
-                    sendToIkaChef(self.session, chunk, Token=True)
+                    _sendWithFallback(self.session, chunk, Token=True)
                 except Exception:
                     pass
 
@@ -161,7 +178,7 @@ class TelegramBot:
         elif cmd == f"/{COMMANDS['monitor']}":
             self.output_control.set_monitor()
             try:
-                sendToIkaChef(self.session, "📢 Monitoring started", Token=True)
+                _sendWithFallback(self.session, "📢 Monitoring started", Token=True)
             except Exception:
                 pass
 
@@ -169,7 +186,7 @@ class TelegramBot:
         elif cmd == f"/{COMMANDS['mute']}":
             self.output_control.set_quiet()
             try:
-                sendToIkaChef(self.session, "🔇 Muted", Token=True)
+                _sendWithFallback(self.session, "🔇 Muted", Token=True)
             except Exception:
                 pass
 
@@ -180,7 +197,7 @@ class TelegramBot:
             if len(parts) == 1:
                 # Just /stop - ask for confirmation
                 try:
-                    sendToIkaChef(
+                    _sendWithFallback(
                         self.session,
                         "Stop telegram bot?\n\n"
                         f"/{COMMANDS['stop']} bot - Stop bot only\n"
@@ -208,6 +225,6 @@ class TelegramBot:
                 "Send any number to interact with menu"
             )
             try:
-                sendToIkaChef(self.session, help_text, Token=True)
+                _sendWithFallback(self.session, help_text, Token=True)
             except Exception:
                 pass
