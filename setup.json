@@ -1,0 +1,17 @@
+{
+    "account_index": 1,
+    "actions": [
+        {
+            "name": "monitor_nearby",
+            "inputs": [
+                "60"
+            ]
+        },
+        {
+            "name": "alertAttacks",
+            "inputs": [
+                "20"
+            ]
+        }
+    ]
+}
