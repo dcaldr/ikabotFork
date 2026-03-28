@@ -7,6 +7,9 @@ import os
 import sys
 import time
 
+from dotenv import load_dotenv
+load_dotenv()
+
 from ikabot.config import *
 from ikabot.function.activateMiracle import activateMiracle
 from ikabot.function.alertAttacks import alertAttacks
@@ -25,7 +28,7 @@ from ikabot.function.donationBot import donationBot
 from ikabot.function.dumpWorld import dumpWorld
 from ikabot.function.getStatus import getStatus
 from ikabot.function.importExportCookie import importExportCookie
-from ikabot.function.investigate import investigate
+from ikabot.function.Research import research
 from ikabot.function.consolidateResources import consolidateResources
 from ikabot.function.killTasks import killTasks
 from ikabot.function.loginDaily import loginDaily
@@ -48,7 +51,9 @@ from ikabot.helpers.gui import *
 from ikabot.helpers.pedirInfo import read
 from ikabot.helpers.process import updateProcessList
 from ikabot.web.session import *
+from ikabot.function.UpgradeUnits import UpgradeUnits
 from ikabot.function.modifyProduction import modifyProduction
+from ikabot.function.developer import developer
 
 
 def menu(session, checkUpdate=True):
@@ -129,12 +134,13 @@ def menu(session, checkUpdate=True):
         11: activateMiracle,
         1201: trainArmy,
         1202: stationArmy,
+        1203: UpgradeUnits,
         13: shipMovements,
         14: constructBuilding,
         15: update,
         16: webServer,
         17: autoPirate,
-        18: investigate,
+        18: research,
         1901: attackBarbarians,
         1902: autoBarbarians,
         2001: searchForIslandSpaces,
@@ -147,6 +153,7 @@ def menu(session, checkUpdate=True):
         2106: testTelegramBot,
         2107: importExportCookie,
         2108: loadCustomModule,
+        2109: developer,
         22: consolidateResources,
         23: modifyProduction
     }
@@ -169,7 +176,7 @@ def menu(session, checkUpdate=True):
     print("(15) Update Ikabot")
     print("(16) Ikabot Web Server")
     print("(17) Auto-Pirate")
-    print("(18) Investigate")
+    print("(18) Research")
     print("(19) Attack / Grind barbarians")
     print("(20) Dump / Monitor world")
     print("(21) Options / Settings")
@@ -239,7 +246,8 @@ def menu(session, checkUpdate=True):
         print("(0) Back")
         print("(1) Train Army")
         print("(2) Send Troops/Ships")
-        selected = read(min=0, max=2, digit=True)
+        print("(3) Upgrade Army")
+        selected = read(min=0, max=3, digit=True)
         if selected == 0:
             menu(session)
             return
@@ -272,8 +280,9 @@ def menu(session, checkUpdate=True):
         print("(6) Message Telegram Bot")
         print("(7) Import / Export cookie")
         print("(8) Load custom ikabot module")
+        print("(9) Developer Data")
 
-        selected = read(min=0, max=8, digit=True)
+        selected = read(min=0, max=9, digit=True)
         if selected == 0:
             menu(session)
             return
