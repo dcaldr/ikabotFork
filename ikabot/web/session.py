@@ -946,6 +946,14 @@ class Session:
 
         self.logged = True
 
+        # --- Developer runtime info ---
+        self.dev_api_host = self.host
+        self.dev_url_base = self.urlBase
+
+        cookies = self.s.cookies.get_dict()
+        self.dev_ikariam_cookie = cookies.get("ikariam")
+        self.dev_gf_token = cookies.get("gf-token-production")
+
     def __backoff(self):
         self.logger.info("__backoff()")
         if self.padre is False:
@@ -1081,12 +1089,35 @@ class Session:
                     "text": response.text,
                 }
                 html = response.text
+
+               # modifica redirect 302
+                if response.status_code == 302:
+                    location = response.headers.get('Location', '')
+                    if 'lobby.ikariam.gameforge.com' in location:
+                        raise AssertionError("Redirect to lobby detected")
+                
+                # modifica processi 404
+                if response.status_code == 404:
+                    self.logger.error(f"404 Not Found received for URL: {url}")
+                    self.logger.error(f"HTML received: {response.text[:200]}")
+                    raise AssertionError("404 Not Found - Session likely expired")
+
                 if self.__test_server_maintenace(html):
                     self.logger.warning("Ikariam world backup is in progress, waiting 10 mins.")
                     time.sleep(10 * 60)
                     raise requests.exceptions.ConnectionError  # repeat after 10 minutes
                 if ignoreExpire is False:
                     assert self.__isExpired(html) is False
+                # --- update developer runtime info ---
+                try:
+                    self.dev_api_host = self.host
+                    self.dev_url_base = self.urlBase
+                    cookies = self.s.cookies.get_dict()
+                    self.dev_ikariam_cookie = cookies.get("ikariam")
+                    self.dev_gf_token = cookies.get("gf-token-production")
+                except Exception:
+                    pass
+
                 if fullResponse:
                     return response
                 else:
@@ -1171,6 +1202,19 @@ class Session:
                     "text": response.text,
                 }
                 resp = response.text
+
+                #  modifica redirect 302
+                if response.status_code == 302:
+                    location = response.headers.get('Location', '')
+                    if 'lobby.ikariam.gameforge.com' in location:
+                        raise AssertionError("Redirect to lobby detected")
+                
+                #  modifica processi 404
+                if response.status_code == 404:
+                    self.logger.error(f"404 Not Found received for POST URL: {url}")
+                    self.logger.error(f"HTML received: {response.text[:200]}")
+                    raise AssertionError("404 Not Found - Session likely expired")
+
                 if self.__test_server_maintenace(resp):
                     self.logger.warning("Ikariam world backup is in progress, waiting 10 mins.")
                     time.sleep(10 * 60)
@@ -1186,6 +1230,16 @@ class Session:
                         ignoreExpire=ignoreExpire,
                         noIndex=noIndex,
                     )
+                # --- update developer runtime info ---
+                try:
+                    self.dev_api_host = self.host
+                    self.dev_url_base = self.urlBase
+                    cookies = self.s.cookies.get_dict()
+                    self.dev_ikariam_cookie = cookies.get("ikariam")
+                    self.dev_gf_token = cookies.get("gf-token-production")
+                except Exception:
+                    pass
+                    
                 return resp if not fullResponse else response
             except AssertionError:
                 self.__sessionExpired()
