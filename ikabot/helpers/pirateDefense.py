@@ -18,7 +18,8 @@ import json
 import traceback
 
 from ikabot.config import actionRequest
-from ikabot.helpers.getJson import getIdsOfCities, getCity
+from ikabot.helpers.getJson import getCity
+from ikabot.helpers.pedirInfo import getIdsOfCities
 from ikabot.helpers.varios import daysHoursMinutes
 
 
