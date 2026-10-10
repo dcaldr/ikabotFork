@@ -6,15 +6,17 @@ Helper module for automatic pirate defense via crew conversion.
 
 When a pirate attack is detected, this module:
 1. Fetches current capture points available
-2. Calculates max crew points that can be converted in time
-3. Converts capture points to crew strength BEFORE attack arrives
-4. Returns result for alerting user
+2. Preserves the passive +1400 crew strength bonus (7000 CP threshold) if applicable
+3. Calculates max crew points that can be converted before the attack arrives
+4. Converts capture points to crew strength BEFORE attack arrives
+5. Returns result for alerting the user
 
 Critical timing constraint: Conversion MUST complete before attack arrives.
 """
 
 import re
 import json
+import time
 import traceback
 
 from ikabot.config import actionRequest
@@ -22,14 +24,27 @@ from ikabot.helpers.getJson import getCity
 from ikabot.helpers.pedirInfo import getIdsOfCities
 from ikabot.helpers.varios import daysHoursMinutes
 
+# Ikariam piracy game constants (1x speed server base)
+PIRACY_POINTS_PER_CREW = 10
+PIRACY_TIME_PER_CREW = 7
+PIRACY_BASE_CONVERSION_TIME = 156  # 2m 36s base conversion startup time
+PIRACY_BONUS_THRESHOLD = 7000     # 7000 CP gives +1400 crew strength bonus
+PIRACY_BONUS_CREW = 1400          # Passive bonus provided by threshold
 
-def get_pirate_fortress_city(session):
+
+def get_pirate_fortress_city(session, target_city_id=None):
     """
     Find a city with a pirate fortress.
+    
+    In Ikariam, incoming pirate raids can ONLY target cities that have a pirate fortress.
+    If target_city_id is provided, we check that city first (or return it if valid).
+    Otherwise, we check the session cache, and only crawl cities if not cached.
 
     Parameters
     ----------
     session : ikabot.web.session.Session
+    target_city_id : str or int, optional
+        Target city of the pirate raid
 
     Returns
     -------
@@ -37,17 +52,55 @@ def get_pirate_fortress_city(session):
         City dict with pirate fortress, or None if no fortress found
     """
     try:
+        session_data = session.getSessionData()
+        
+        def _check_city_for_fortress(html_text, cid):
+            if "pirateFortress" not in html_text:
+                return None
+            try:
+                # Fast extract backgroundData JSON from response
+                bg_match = re.search(r'"updateBackgroundData",\s?([\s\S]*?)\],\["updateTemplateData"', html_text)
+                if bg_match:
+                    bg_data = json.loads(bg_match.group(1), strict=False)
+                    for pos, building in enumerate(bg_data.get("position", [])):
+                        if building.get("building") == "pirateFortress":
+                            return {
+                                "id": str(cid),
+                                "islandId": bg_data.get("islandId", 0),
+                                "fortress_pos": pos,
+                                "fortress_level": building.get("level", 0)
+                            }
+            except Exception:
+                pass
+            return {"id": str(cid), "islandId": 0, "fortress_pos": 17, "fortress_level": 1}
+
+        # 1. If target_city_id is provided, verify it directly
+        if target_city_id:
+            html = session.get(f"?view=city&cityId={target_city_id}")
+            fortress = _check_city_for_fortress(html, target_city_id)
+            if fortress:
+                if session_data.get("pirate_fortress_city_id") != fortress["id"]:
+                    session_data["pirate_fortress_city_id"] = fortress["id"]
+                    session.setSessionData(session_data)
+                return fortress
+
+        # 2. Check cached fortress city ID
+        cached_city_id = session_data.get("pirate_fortress_city_id")
+        if cached_city_id:
+            html = session.get(f"?view=city&cityId={cached_city_id}")
+            fortress = _check_city_for_fortress(html, cached_city_id)
+            if fortress:
+                return fortress
+
+        # 3. Fallback: Scan cities once and cache
         city_ids = getIdsOfCities(session)[0]
         for city_id in city_ids:
             html = session.get(f"?view=city&cityId={city_id}")
-            city = getCity(html)
-
-            # Check for pirate fortress in city positions
-            for pos, building in enumerate(city["position"]):
-                if building.get("building") == "pirateFortress":
-                    city["fortress_pos"] = pos
-                    city["fortress_level"] = building.get("level", 0)
-                    return city
+            fortress = _check_city_for_fortress(html, city_id)
+            if fortress:
+                session_data["pirate_fortress_city_id"] = fortress["id"]
+                session.setSessionData(session_data)
+                return fortress
 
         return None
     except Exception as e:
@@ -57,14 +110,7 @@ def get_pirate_fortress_city(session):
 
 def get_conversion_data(session, city):
     """
-    Fetch pirate fortress conversion data dynamically from API.
-
-    Parses the pirate fortress crew conversion screen to get:
-    - Current capture points available
-    - Base conversion time (startup penalty)
-    - Time per crew point
-    - Capture points per crew point
-    - Whether conversion is already in progress
+    Fetch pirate fortress conversion status from API.
 
     Parameters
     ----------
@@ -74,15 +120,14 @@ def get_conversion_data(session, city):
 
     Returns
     -------
-    data : dict
+    data : dict or None
         {
             "capture_points": int,
-            "base_time_seconds": int,  # e.g., 156
-            "time_per_crew": int,      # e.g., 7
-            "points_per_crew": int,    # e.g., 10
+            "base_time_seconds": int,
+            "time_per_crew": int,
+            "points_per_crew": int,
             "conversion_in_progress": bool
         }
-    or None if error
     """
     try:
         params = {
@@ -100,44 +145,17 @@ def get_conversion_data(session, city):
         html = session.post(params=params)
 
         # Extract current capture points
-        match = re.search(r'\\"capturePoints\\":\\"(\d+)\\"', html)
-        if not match:
-            match = re.search(r'"capturePoints":"(\d+)"', html)
+        match = re.search(r'capturePoints[\\"\s:]+(\d+)', html)
         capture_points = int(match.group(1)) if match else 0
 
         # Check if conversion already in progress
         conversion_in_progress = "conversionProgressBar" in html
 
-        # Extract conversion costs from HTML
-        # Look for: <li class="capturePoints"><span class="value">10</span>
-        points_match = re.search(r'class="capturePoints"[^>]*>.*?<span class="value">(\d+)</span>', html, re.DOTALL)
-        points_per_crew = int(points_match.group(1)) if points_match else 10
-
-        # Look for: <li class="time"><span class="value">7s</span>
-        time_match = re.search(r'class="time"[^>]*>.*?<span class="value">(\d+)s</span>', html, re.DOTALL)
-        time_per_crew = int(time_match.group(1)) if time_match else 7
-
-        # Look for base time: "Pro přeměnu je základní doba 2m 36s"
-        base_time_match = re.search(r'základní doba (\d+)m\s*(\d+)s', html)
-        if base_time_match:
-            minutes = int(base_time_match.group(1))
-            seconds = int(base_time_match.group(2))
-            base_time_seconds = minutes * 60 + seconds
-        else:
-            # Fallback: try English version or default
-            base_time_match = re.search(r'base time (\d+)m\s*(\d+)s', html, re.IGNORECASE)
-            if base_time_match:
-                minutes = int(base_time_match.group(1))
-                seconds = int(base_time_match.group(2))
-                base_time_seconds = minutes * 60 + seconds
-            else:
-                base_time_seconds = 156  # Default fallback
-
         return {
             "capture_points": capture_points,
-            "base_time_seconds": base_time_seconds,
-            "time_per_crew": time_per_crew,
-            "points_per_crew": points_per_crew,
+            "base_time_seconds": PIRACY_BASE_CONVERSION_TIME,
+            "time_per_crew": PIRACY_TIME_PER_CREW,
+            "points_per_crew": PIRACY_POINTS_PER_CREW,
             "conversion_in_progress": conversion_in_progress
         }
 
@@ -151,42 +169,35 @@ def calculate_max_crew_conversion(attack_arrival_seconds, safety_buffer_seconds,
     """
     Calculate maximum crew points that can be converted before attack arrives.
 
-    Formula:
-        available_time = attack_arrival - safety_buffer
-        if available_time < base_time: return 0 (not enough time)
-        max_crew = (available_time - base_time) / time_per_crew
-
     Parameters
     ----------
     attack_arrival_seconds : int
         Seconds until attack arrives
     safety_buffer_seconds : int
-        Safety buffer (don't convert if attack too close)
+        Safety buffer (don't convert if attack arrives too close)
     conversion_data : dict
         Data from get_conversion_data()
 
     Returns
     -------
     max_crew : int
-        Maximum crew points that can be converted, or 0 if not enough time
+        Maximum crew points that can be converted in available time, or 0
     """
     available_time = attack_arrival_seconds - safety_buffer_seconds
-    base_time = conversion_data["base_time_seconds"]
-    time_per_crew = conversion_data["time_per_crew"]
+    base_time = conversion_data.get("base_time_seconds", PIRACY_BASE_CONVERSION_TIME)
+    time_per_crew = conversion_data.get("time_per_crew", PIRACY_TIME_PER_CREW)
 
     if available_time < base_time:
-        return 0  # Not enough time even for base conversion
+        return 0
 
-    # Calculate max crew points
     time_for_crew = available_time - base_time
     max_crew = int(time_for_crew / time_per_crew)
-
     return max(0, max_crew)
 
 
 def convert_crew_for_defense(session, city, crew_points_to_convert):
     """
-    Convert capture points to crew strength.
+    Execute conversion and verify server response.
 
     Parameters
     ----------
@@ -206,7 +217,7 @@ def convert_crew_for_defense(session, city, crew_points_to_convert):
             "function": "convert",
             "view": "pirateFortress",
             "cityId": city["id"],
-            "islandId": city["islandId"],
+            "islandId": city.get("islandId", 0),
             "activeTab": "tabCrew",
             "crewPoints": str(crew_points_to_convert),
             "position": str(city.get("fortress_pos", 17)),
@@ -217,7 +228,13 @@ def convert_crew_for_defense(session, city, crew_points_to_convert):
             "ajax": "1",
         }
 
-        session.post(params=data, noIndex=True)
+        resp = session.post(params=data, noIndex=True)
+
+        # Check for error in response
+        if resp and ('"type":3' in resp or '"type": "error"' in resp or "error" in resp.lower() and len(resp) < 200):
+            print(f"Server rejected conversion: {resp}")
+            return False
+
         return True
 
     except Exception as e:
@@ -231,12 +248,10 @@ def auto_defend_pirate_attack(session, target_city_id, attack_arrival_seconds,
     """
     Automatically convert capture points to crew strength to defend against pirate attack.
 
-    This is the main function called by both automatic and manual modes.
-
     Parameters
     ----------
     session : ikabot.web.session.Session
-    target_city_id : str
+    target_city_id : str or int
         City ID being attacked
     attack_arrival_seconds : int
         Seconds until attack arrives
@@ -245,20 +260,11 @@ def auto_defend_pirate_attack(session, target_city_id, attack_arrival_seconds,
     safety_buffer_seconds : int
         Safety buffer in seconds (default 10)
     allow_bonus_loss : bool
-        Allow spending that drops below 7000 points (loses crew bonus), default False
+        Allow spending below 7000 points (losing passive +1400 crew bonus), default False
 
     Returns
     -------
     result : dict
-        {
-            "success": bool,
-            "reason": str (if failed),
-            "crew_converted": int,
-            "capture_points_spent": int,
-            "conversion_time": int (seconds),
-            "attack_arrival_time": int (seconds),
-            "time_buffer": int (seconds margin before attack)
-        }
     """
     result = {
         "success": False,
@@ -267,71 +273,86 @@ def auto_defend_pirate_attack(session, target_city_id, attack_arrival_seconds,
         "capture_points_spent": 0,
         "conversion_time": 0,
         "attack_arrival_time": attack_arrival_seconds,
-        "time_buffer": 0
+        "time_buffer": 0,
+        "retry_later": False
     }
 
     try:
-        # 1. Find pirate fortress
-        fortress_city = get_pirate_fortress_city(session)
+        start_eval_time = time.time()
+
+        # 1. Find pirate fortress city (direct check of target city)
+        fortress_city = get_pirate_fortress_city(session, target_city_id)
         if not fortress_city:
-            result["reason"] = "No pirate fortress found in any city"
+            result["reason"] = f"No pirate fortress found in city {target_city_id}"
             return result
 
-        # 2. Get conversion data
+        # 2. Get conversion status
         conversion_data = get_conversion_data(session, fortress_city)
         if not conversion_data:
             result["reason"] = "Failed to fetch conversion data from pirate fortress"
+            result["retry_later"] = True
             return result
 
         # 3. Check if conversion already in progress
         if conversion_data["conversion_in_progress"]:
-            result["reason"] = "Conversion already in progress, cannot start another"
+            result["reason"] = "Conversion already in progress"
+            result["retry_later"] = True
             return result
+
+        # Adjust remaining attack arrival seconds by elapsed I/O time
+        elapsed = int(time.time() - start_eval_time)
+        real_arrival_seconds = max(0, attack_arrival_seconds - elapsed)
+        result["attack_arrival_time"] = real_arrival_seconds
 
         # 4. Check available capture points
         available_capture_points = conversion_data["capture_points"]
-        if available_capture_points < conversion_data["points_per_crew"]:
-            result["reason"] = f"Not enough capture points (have {available_capture_points}, need {conversion_data['points_per_crew']} minimum)"
+        points_per_crew = conversion_data["points_per_crew"]
+        if available_capture_points < points_per_crew:
+            result["reason"] = f"Not enough capture points (have {available_capture_points}, need {points_per_crew} min)"
             return result
 
         # 5. Calculate max crew based on time constraint
         max_crew_by_time = calculate_max_crew_conversion(
-            attack_arrival_seconds,
+            real_arrival_seconds,
             safety_buffer_seconds,
             conversion_data
         )
 
+        min_needed_time = conversion_data["base_time_seconds"] + safety_buffer_seconds
         if max_crew_by_time == 0:
-            result["reason"] = f"Attack too close ({attack_arrival_seconds}s) - need at least {conversion_data['base_time_seconds'] + safety_buffer_seconds}s"
+            result["reason"] = f"Attack too close ({real_arrival_seconds}s) - need at least {min_needed_time}s"
             return result
 
-        # 6. Calculate max crew based on available capture points
-        max_crew_by_points = available_capture_points // conversion_data["points_per_crew"]
+        # 6. Apply 7000 CP threshold protection (+1400 crew bonus)
+        # 7000 CP converted to crew = +700 crew, but loses +1400 bonus -> net LOSS of 700 crew!
+        # If allow_bonus_loss is False, we preserve the 7000 CP threshold.
+        if not allow_bonus_loss and available_capture_points >= PIRACY_BONUS_THRESHOLD:
+            spendable_points = available_capture_points - PIRACY_BONUS_THRESHOLD
+            if spendable_points < points_per_crew:
+                result["success"] = True
+                result["reason"] = "7,000 CP preserved to maintain maximum passive bonus (+1,400 crew strength)"
+                result["crew_converted"] = 0
+                return result
+        else:
+            spendable_points = available_capture_points
 
         # 7. Apply user spending limit if specified
         if max_capture_points:
-            max_crew_by_limit = max_capture_points // conversion_data["points_per_crew"]
-            crew_to_convert = min(max_crew_by_time, max_crew_by_points, max_crew_by_limit)
-        else:
-            crew_to_convert = min(max_crew_by_time, max_crew_by_points)
+            spendable_points = min(spendable_points, max_capture_points)
 
-        # 7b. Apply 7000 points bonus threshold protection if enabled
-        if not allow_bonus_loss and available_capture_points >= 7000:
-            # Calculate max crew that keeps us at exactly 7000 points (preserve bonus)
-            max_spend_for_bonus = available_capture_points - 7000
-            max_crew_by_bonus = max_spend_for_bonus // conversion_data["points_per_crew"]
-            crew_to_convert = min(crew_to_convert, max_crew_by_bonus)
+        max_crew_by_points = spendable_points // points_per_crew
+        crew_to_convert = min(max_crew_by_time, max_crew_by_points)
 
-        if crew_to_convert == 0:
+        if crew_to_convert <= 0:
             result["reason"] = "Calculated 0 crew to convert (time/points/limit constraints)"
             return result
 
-        # 8. Calculate actual conversion time
+        # 8. Calculate actual conversion time and verify buffer
         conversion_time = conversion_data["base_time_seconds"] + (crew_to_convert * conversion_data["time_per_crew"])
-        time_buffer = attack_arrival_seconds - conversion_time
+        time_buffer = real_arrival_seconds - conversion_time
 
         if time_buffer < 0:
-            result["reason"] = f"Conversion would take {conversion_time}s but attack in {attack_arrival_seconds}s"
+            result["reason"] = f"Conversion would take {conversion_time}s but attack arrives in {real_arrival_seconds}s"
             return result
 
         # 9. Perform conversion
@@ -340,17 +361,19 @@ def auto_defend_pirate_attack(session, target_city_id, attack_arrival_seconds,
         if success:
             result["success"] = True
             result["crew_converted"] = crew_to_convert
-            result["capture_points_spent"] = crew_to_convert * conversion_data["points_per_crew"]
+            result["capture_points_spent"] = crew_to_convert * points_per_crew
             result["conversion_time"] = conversion_time
             result["time_buffer"] = time_buffer
         else:
-            result["reason"] = "API call to convert crew failed"
+            result["reason"] = "API call to convert crew was rejected by server"
+            result["retry_later"] = True
 
         return result
 
     except Exception as e:
         result["reason"] = f"Exception: {str(e)}"
         traceback.print_exc()
+        result["retry_later"] = True
         return result
 
 
@@ -370,13 +393,16 @@ def format_defense_result(result):
     """
     if result["success"]:
         msg = "\n--- AUTO-DEFENSE ACTIVATED ---\n"
-        msg += f"Converted: {result['crew_converted']} crew points\n"
-        msg += f"Spent: {result['capture_points_spent']} capture points\n"
-        msg += f"Conversion completes in: {daysHoursMinutes(result['conversion_time'])}\n"
-        msg += f"Attack arrives in: {daysHoursMinutes(result['attack_arrival_time'])}\n"
-        msg += f"Safety margin: {daysHoursMinutes(result['time_buffer'])}\n"
+        if result["crew_converted"] > 0:
+            msg += f"Converted: {result['crew_converted']} crew points\n"
+            msg += f"Spent: {result['capture_points_spent']} capture points\n"
+            msg += f"Conversion completes in: {daysHoursMinutes(result['conversion_time'])}\n"
+            msg += f"Attack arrives in: {daysHoursMinutes(result['attack_arrival_time'])}\n"
+            msg += f"Safety margin: {daysHoursMinutes(result['time_buffer'])}\n"
+        else:
+            msg += f"Status: {result['reason']}\n"
     else:
-        msg = "\n--- AUTO-DEFENSE FAILED ---\n"
-        msg += f"Reason: {result['reason']}\n"
+        msg = "\n--- AUTO-DEFENSE STATUS ---\n"
+        msg += f"Notice: {result['reason']}\n"
 
     return msg

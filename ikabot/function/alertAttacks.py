@@ -16,6 +16,7 @@ from ikabot.helpers.gui import enter
 from ikabot.helpers.process import set_child_mode
 from ikabot.helpers.signals import setInfoSignal
 from ikabot.helpers.varios import daysHoursMinutes
+from ikabot.helpers.pedirInfo import getIdsOfCities
 from ikabot.helpers.pirateDefense import format_defense_result
 
 
@@ -159,24 +160,14 @@ def log_attack_debug(militaryMovement, all_movements, postdata, session, current
             }
         }
 
-        # DEBUG LOGGING: Append to log file in JSON Lines format (one JSON object per line)
-        with open(log_file, "a", encoding="utf-8") as f:
-            f.write(json.dumps(log_entry, ensure_ascii=False, default=str) + "\n")
+        # DEBUG LOGGING: Only log if debug is enabled
+        if getattr(config, "debugON_alertAttacks", False):
+            with open(log_file, "a", encoding="utf-8") as f:
+                f.write(json.dumps(log_entry, ensure_ascii=False, default=str) + "\n")
 
-        # DEBUG LOGGING: Log summary to console for immediate feedback
-        summary = (
-            f"[DEBUG] Attack logged: '{log_entry['quick_ref']['mission_text']}' "
-            f"from {log_entry['quick_ref']['origin_avatar']} "
-            f"(hostile={log_entry['quick_ref']['is_hostile']}, "
-            f"own={log_entry['quick_ref']['is_own']}) "
-            f"-> {log_file}"
-        )
-        print(summary)
-
-    except Exception as e:
+    except Exception:
         # DEBUG LOGGING: Don't crash alertAttacks if logging fails
-        print(f"[DEBUG] Alert logging failed: {e}")
-        traceback.print_exc()
+        pass
 
 
 def alertAttacks(session, event, stdin_fd, predetermined_input):
@@ -205,7 +196,7 @@ def alertAttacks(session, event, stdin_fd, predetermined_input):
         )
         # min_units = read(msg=_('Attacks with less than how many units should be ignored? (default: 0): '), digit=True, default=0)
         print("I will check for attacks every {:d} minutes".format(minutes))
-        print("\nTIP: To enable auto-pirate defense, use menu option 12.3 (Emergency Pirate Defense → Configure)")
+        print("\nTIP: To enable auto-pirate defense, use menu option 12.5 (Emergency Pirate Defense → Configure)")
         enter()
     except KeyboardInterrupt:
         event.set()
@@ -292,28 +283,36 @@ def do_it(session, minutes):
             ]
             timeNow = int(postdata[0][1]["time"])
 
-            for militaryMovement in [
-                mov for mov in militaryMovements if mov["isHostile"]
-            ]:
+            my_city_ids = [str(cid) for cid in getIdsOfCities(session)[0]]
+            username = getattr(session, "username", "")
+
+            for militaryMovement in militaryMovements:
+                if not militaryMovement.get("isHostile"):
+                    continue
+
+                origin = militaryMovement.get("origin", {})
+                target = militaryMovement.get("target", {})
                 event_id = militaryMovement["event"]["id"]
+
+                # 1. Ignore if attacker is our own player account
+                if origin.get("avatarName") == username:
+                    continue
+
+                # 2. Ignore if destination is NOT one of our own cities (e.g. raid on foreign city)
+                if str(target.get("cityId")) not in my_city_ids:
+                    continue
+
                 currentAttacks.append(event_id)
+
                 # if we already alerted this, do nothing
                 if event_id not in knownAttacks:
-                    knownAttacks.append(event_id)
-
                     # get information about the attack
                     missionText = militaryMovement["event"]["missionText"]
-                    origin = militaryMovement["origin"]
-                    target = militaryMovement["target"]
                     amountTroops = militaryMovement["army"]["amount"]
                     amountFleets = militaryMovement["fleet"]["amount"]
                     timeLeft = int(militaryMovement["eventTime"]) - timeNow
 
-                    # DEBUG LOGGING: Only log INCOMING attacks (not own outgoing pirate missions)
-                    # Filter: isHostile=true AND isOwnArmyOrFleet=false
-                    # This captures: triggered movement, all movements, full API response, session context, statistics, precise timing
-                    # Log file location: ~/.ikabot/alert_debug.log (JSON Lines format)
-                    
+                    # DEBUG LOGGING: Only log if debugON_alertAttacks is active
                     log_attack_debug(
                         militaryMovement=militaryMovement,     # The hostile movement that triggered alert
                         all_movements=militaryMovements,       # ALL movements (to compare patterns)
@@ -331,6 +330,7 @@ def do_it(session, minutes):
                     )
 
                     # send alert
+                    retry_defense_later = False
                     if isPirate:
                         msg = "-- PIRATE ATTACK --\n"
                         msg += missionText + "\n"
@@ -351,8 +351,11 @@ def do_it(session, minutes):
                             }
                             defense_result = auto_defend_on_detection(session, pirate_attack_data)
                             msg += format_defense_result(defense_result)
+                            if defense_result.get("retry_later"):
+                                retry_defense_later = True
                         except Exception as e:
                             msg += f"\n--- AUTO-DEFENSE ERROR ---\n{str(e)}\n"
+                            retry_defense_later = True
 
                     else:
                         msg = "-- ALERT --\n"
@@ -368,6 +371,10 @@ def do_it(session, minutes):
                         msg += "{:d}:1".format(os.getpid())
 
                     sendToBot(session, msg)
+
+                    # Only mark as completed if we don't need to retry defense in next polling cycle
+                    if not retry_defense_later:
+                        knownAttacks.append(event_id)
 
         except Exception as e:
             info = "\nI check for attacks every {:d} minutes\n".format(minutes)
