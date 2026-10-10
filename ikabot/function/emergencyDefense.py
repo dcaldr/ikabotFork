@@ -57,8 +57,8 @@ def configure_auto_defense(session):
         safety_buffer = read(msg="Safety buffer (default: 10): ", min=0, digit=True, default=10)
 
         print("\nCapture Points Bonus Protection (7000 points threshold):")
-        print("When you have 7000+ capture points, you have a crew strength bonus.")
-        print("Spending below 7000 points loses this bonus (regained at 7000 again).")
+        print("When you have 7000+ capture points, you receive a passive +1400 crew strength bonus.")
+        print("Converting below 7000 CP only gives +1 crew per 10 CP, so losing the bonus costs 700 net crew strength!")
         allow_bonus_loss = read(msg="Allow spending that drops below 7000 points? (yes loses bonus) (y/N): ", values=["y", "Y", "n", "N", ""])
 
         # Store configuration
